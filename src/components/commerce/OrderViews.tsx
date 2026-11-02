@@ -104,15 +104,17 @@ export function OrderTracker() {
     setResult(null);
     if (!email.trim()) return setError("Enter the email address used for the order.");
     const local = orders.find((o) => o.number.toUpperCase() === number.trim().toUpperCase() && o.email.toLowerCase() === email.trim().toLowerCase());
-    if (local) return setResult(local);
     setBusy(true);
     try {
+      // The server is the source of truth (status is updated from the admin); fall back to this browser's copy.
       const res = await fetch(`/api/orders/${encodeURIComponent(number.trim())}?email=${encodeURIComponent(email.trim())}`);
       const data = await res.json();
       if (data.ok) setResult(data.order);
+      else if (local) setResult(local);
       else setError("We couldn’t find an order with those details.");
     } catch {
-      setError("Lookup failed. Please try again.");
+      if (local) setResult(local);
+      else setError("Lookup failed. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -139,7 +141,7 @@ export function OrderTracker() {
       {hydrated && orders.length > 0 && !result && (
         <div className="mt-10">
           <p className="mb-3 text-sm font-semibold">Recent orders from this browser</p>
-          <ul className="space-y-2">{orders.slice(0, 5).map((o) => <li key={o.number}><button className="text-sm text-primary underline" onClick={() => { setNumber(o.number); setEmail(o.email); setResult(o); }}>{o.number}</button> <span className="text-xs text-muted-foreground">· {formatDate(o.createdAt)}</span></li>)}</ul>
+          <ul className="space-y-2">{orders.slice(0, 5).map((o) => <li key={o.number}><button className="text-sm text-primary underline" onClick={() => { setNumber(o.number); setEmail(o.email); }}>{o.number}</button> <span className="text-xs text-muted-foreground">· {formatDate(o.createdAt)}</span></li>)}</ul>
         </div>
       )}
     </div>

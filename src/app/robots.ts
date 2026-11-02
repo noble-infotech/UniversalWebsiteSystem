@@ -7,7 +7,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const base = siteUrl(site);
   if (!site.seo.robots.index) return { rules: { userAgent: "*", disallow: "/" } };
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/cart", "/checkout", "/account", "/wishlist", ...site.seo.robots.disallow] },
+    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/admin", "/cart", "/checkout", "/account", "/wishlist", ...site.seo.robots.disallow] },
     sitemap: `${base}/sitemap.xml`,
     host: base,
   };

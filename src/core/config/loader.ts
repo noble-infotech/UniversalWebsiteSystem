@@ -1,25 +1,75 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { siteRegistry, defaultSiteId } from "@sites/index";
-import { SiteConfigSchema, type SiteConfig } from "./schema";
+import { SiteConfigSchema, type SiteConfig, type SiteConfigInput } from "./schema";
+import { getStore, type Overrides } from "@/server/store";
 
 export const SITE_COOKIE = "uws-site";
 
-const parsed = new Map<string, SiteConfig>();
+/**
+ * Config resolution = file config (sites/<id>) + admin overrides (database).
+ * Overrides replace whole top-level modules (company, theme, pages, catalog…),
+ * so a module edited in the admin is fully owned by the admin until reset.
+ */
+const parsed = new Map<string, { key: string; config: SiteConfig }>();
+const overridesCache = new Map<string, { at: number; data: Overrides; updatedAt?: string }>();
+const TTL_MS = 10_000; // other server instances pick up admin edits within 10 s
 
-/** Validate + apply defaults. Throws a readable error for a broken config. */
-export function loadSiteConfig(id: string): SiteConfig {
-  const hit = parsed.get(id);
-  if (hit) return hit;
+function format(issues: { path: PropertyKey[]; message: string }[]) {
+  return issues.map((i) => `  • ${i.path.join(".")}: ${i.message}`).join("\n");
+}
+
+export function baseConfig(id: string): SiteConfigInput {
   const raw = siteRegistry[id];
   if (!raw) throw new Error(`Unknown site "${id}". Registered sites: ${Object.keys(siteRegistry).join(", ")}`);
-  const result = SiteConfigSchema.safeParse(raw);
-  if (!result.success) {
-    const issues = result.error.issues.map((i) => `  • ${i.path.join(".")}: ${i.message}`).join("\n");
-    throw new Error(`Site config "${id}" is invalid:\n${issues}`);
-  }
-  parsed.set(id, result.data);
+  return raw;
+}
+
+export function mergeConfig(id: string, overrides: Overrides): SiteConfigInput {
+  return { ...baseConfig(id), ...overrides, id };
+}
+
+/** File-only config (used by scripts, tests and as a safe fallback). */
+export function loadSiteConfig(id: string): SiteConfig {
+  const result = SiteConfigSchema.safeParse(baseConfig(id));
+  if (!result.success) throw new Error(`Site config "${id}" is invalid:\n${format(result.error.issues)}`);
   return result.data;
+}
+
+async function getOverrides(id: string) {
+  const hit = overridesCache.get(id);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit;
+  try {
+    const { data, updatedAt } = await getStore().getOverrides(id);
+    const entry = { at: Date.now(), data, updatedAt };
+    overridesCache.set(id, entry);
+    return entry;
+  } catch (e) {
+    console.error("[config] could not load overrides – serving file config", e);
+    return { at: Date.now(), data: {} as Overrides, updatedAt: undefined };
+  }
+}
+
+export function invalidateSite(id: string) {
+  overridesCache.delete(id);
+  parsed.delete(id);
+}
+
+/** Config with admin overrides applied. Falls back to file config if overrides are invalid. */
+export async function resolveSiteConfig(id: string): Promise<SiteConfig> {
+  const o = await getOverrides(id);
+  const key = `${o.updatedAt ?? "none"}:${Object.keys(o.data).length}`;
+  const hit = parsed.get(id);
+  if (hit && hit.key === key) return hit.config;
+  const result = SiteConfigSchema.safeParse(mergeConfig(id, o.data));
+  let config: SiteConfig;
+  if (result.success) config = result.data;
+  else {
+    console.error(`[config] stored overrides for "${id}" are invalid – serving file config:\n${format(result.error.issues)}`);
+    config = loadSiteConfig(id);
+  }
+  parsed.set(id, { key, config });
+  return config;
 }
 
 export function switcherEnabled() {
@@ -38,12 +88,9 @@ export async function getSiteId(): Promise<string> {
   return defaultSiteId;
 }
 
-/**
- * The resolved configuration for the current request.
- * (Not wrapped in React.cache: that is unsafe in route handlers. Parsed configs are memoised per site id above.)
- */
+/** The resolved configuration for the current request (file config + admin edits). */
 export async function getSite(): Promise<SiteConfig> {
-  return loadSiteConfig(await getSiteId());
+  return resolveSiteConfig(await getSiteId());
 }
 
 export function listSites() {

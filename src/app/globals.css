@@ -125,3 +125,7 @@
 @media (max-width: 767px) { .hide-mobile { display: none !important; } }
 @media (min-width: 768px) { .hide-desktop { display: none !important; } }
 .scrollbar-none { scrollbar-width: none; } .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Admin dashboard: neutral typography regardless of the company's brand fonts. */
+.admin-ui h1, .admin-ui h2, .admin-ui h3, .admin-ui h4 { font-family: inherit; text-transform: none; letter-spacing: -0.01em; line-height: 1.25; }
+.admin-ui ::selection { background: #c7d2fe; color: #111827; }

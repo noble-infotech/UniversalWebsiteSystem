@@ -12,13 +12,13 @@ This system **does not pretend to be a finished commerce backend**. The table be
 | Checkout validation and pricing | ✅ Server re-prices every order (`/api/orders`) | – |
 | Tax | ✅ Flat rate, inclusive or exclusive | Swap `computeTotals` tax step for TaxJar / Avalara / Stripe Tax for multi-region tax |
 | Shipping cost | ✅ Flat rate, per-kg, free-over, country rules | `ShippingProvider` → Shiprocket / EasyPost / Shippo for live rates and labels |
-| **Order persistence** | ⚠️ **Demo:** in-memory, lost on restart | `OrderRepository` → Postgres / MySQL / Shopify / Medusa (see below) |
+| **Order persistence** | ✅ **Postgres** when `DATABASE_URL` is set (local JSON files in development); ⚠️ in-memory demo otherwise | `src/server/store.ts`; or your own `OrderRepository` (Shopify, Medusa…) |
 | **Payments** | ⚠️ Manual methods (COD / bank transfer) work. **Stripe Checkout adapter is implemented but untested here** (needs `STRIPE_SECRET_KEY`). Razorpay and PayPal are stubs. | `PaymentProvider` in `src/services/adapters/payments.ts` |
 | Payment webhooks (mark paid) | ❌ Not implemented | Add `app/api/webhooks/<provider>/route.ts` + durable repo |
 | **Customer accounts** | ⚠️ **Demo:** stored in browser localStorage (SHA-256 hashed password). **Not secure auth.** | Replace `AccountViews.tsx` flows with Auth.js / Clerk / Cognito; protect `/account` server-side |
-| Order history and tracking | ⚠️ From browser storage + in-memory server repo; tracking stages simulated | Read from `OrderRepository`; tracking from shipping provider webhooks |
+| Order history and tracking | ✅ Tracking reads the real order status, which is updated in the admin (with a database); ⚠️ customer order history is per browser | Shipping-provider webhooks for automatic status updates |
 | Inventory | ✅ Stock levels in config, enforced at order time; ⚠️ not decremented | `InventoryService.reserve()` → ERP / WMS / DB transaction |
-| Forms (contact, enquiry, quote, careers, newsletter, callback) | ✅ Server-validated, rate-limited, honeypot. Delivered to the server log (`console`) or **any webhook** (`FORMS_WEBHOOK_URL`) | `FormHandler` → CRM, Resend/SES email, Mailchimp |
+| Forms (contact, enquiry, quote, careers, newsletter, callback) | ✅ Server-validated, rate-limited, honeypot. Stored in the admin inbox (with a database) and delivered to the server log or **any webhook** (`FORMS_WEBHOOK_URL`) | `FormHandler` → CRM, Resend/SES email, Mailchimp |
 | Product review submission | ❌ Display only | Add `/api/reviews` + moderation storage |
 | Analytics (GA4, GTM, Meta Pixel) + conversion events | ✅ Loads when IDs are configured | `src/lib/analytics.ts` |
 | Live chat (Tawk, Crisp, Intercom, custom) | ✅ Loads when configured | `src/components/engagement/Integrations.tsx` |
@@ -41,10 +41,12 @@ API routes depend only on these interfaces. To go live, implement an adapter and
 
 ## Orders and database
 
+**Built in:** connect Postgres (`DATABASE_URL`) and orders, enquiries and admin edits are stored automatically. See [ADMIN.md](ADMIN.md). Tables: `uws_orders`, `uws_enquiries`, `uws_site_overrides` (created on first use). For a different backend:
+
 1. Create tables such as `orders`, `order_lines`, `customers` and `payments`. The `Order` type in `src/core/commerce/orders.ts` is the shape to store.
 2. Implement `OrderRepository` with `durable: true` (Prisma, Drizzle, or a Supabase client).
 3. Return it from `getServices()`.
-4. Set `ORDERS_MODE=live` to hide the demo notice at checkout.
+4. The checkout demo notice disappears automatically once orders are stored durably and payments are configured.
 
 Orders created by a durable repository get `mode: "live"`, so tracking uses the real `status` instead of simulated stages.
 

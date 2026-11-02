@@ -45,10 +45,18 @@ See `.env.example`.
 | `SITE_URL` | Public origin for canonical URLs, sitemap and Open Graph tags |
 | `FORMS_WEBHOOK_URL` | Deliver form submissions to a webhook (Zapier, Make, n8n, CRM) |
 | `STRIPE_SECRET_KEY` | Enables the Stripe Checkout adapter when a site uses `payment.provider: "stripe"` |
+| `DATABASE_URL` / `POSTGRES_URL` | Postgres used for admin edits, enquiries and orders |
+| `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_<SITE_ID>`) | Admin login password |
+| `ADMIN_SECRET` | Key for signing admin sessions |
 | `NEXT_IMAGE_UNOPTIMIZED` | `true` where the server can't reach remote image hosts |
+
+## Admin dashboard
+
+Each website has an admin at **`/admin`** for editing company details, brand colours and fonts, pages and homepage sections, menus, products, services, content, shop settings and SEO. It also lists **enquiries** and **orders**. Changes are validated and go live immediately. Setup is a free Postgres database plus an `ADMIN_PASSWORD`; see [docs/ADMIN.md](docs/ADMIN.md). Locally it works with zero setup: open http://localhost:3000/admin and use the password `admin`.
 
 ## Documentation
 
+- [docs/ADMIN.md](docs/ADMIN.md): **admin dashboard**, its setup on Vercel (database and password), and how editing works
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): technology stack, architecture, folder structure, request flow
 - [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md): **onboard a new company** (branding, theme, homepage, navigation, footer, features)
 - [docs/CONTENT.md](docs/CONTENT.md): add **products, services, pages**, blog posts, case studies and more
@@ -59,11 +67,15 @@ See `.env.example`.
 
 **Works today, end to end:** every page, all 32 configurable sections, theming, navigation, search, product filtering and sorting, product pages with variants, customisation, gallery and zoom, wishlist, cart, coupons (validated on the server), shipping and tax calculation, checkout with validation, **server-side re-pricing of orders** (client prices are never trusted), order confirmation, form validation and submission (server-validated, rate-limited, honeypot), webhook delivery of forms, SEO metadata, JSON-LD, sitemap, robots.txt, and analytics/pixel/live-chat loaders.
 
-**Demo-grade (clearly labelled in the UI), needs a backend before launch:**
+**With a database connected** (see docs/ADMIN.md), the following are stored and managed in the admin:
+- orders, with real status-based tracking
+- enquiries
+- all website edits
 
-- **Order persistence:** the in-memory repository is lost on restart.
+**Still demo-grade (clearly labelled in the UI), needs work before launch:**
+
+- **Without a database:** orders are kept in memory and tracking stages are simulated from the order date.
 - **Customer accounts:** these are stored in the browser's localStorage.
-- **Order tracking:** stages are simulated from the order date.
 - **Review submission.**
 - **Live payment:** Stripe Checkout is implemented but untested here. Razorpay and PayPal are interface stubs.
 - **Live shipping rates.**
