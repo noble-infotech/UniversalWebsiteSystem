@@ -20,7 +20,7 @@ export const content: SiteConfigInput["content"] = {
     { title: "Bonded warehouses", description: "Pune & Düsseldorf hubs for VMI and just-in-time delivery.", image: img("photo-1553413077-190dd305871c", 900), icon: "warehouse" },
   ],
   testimonials: [
-    { quote: "Apex Forge cut our housing cost by 12% through DFM suggestions and has delivered zero-ppm for three years running. They behave like an extension of our engineering team.", author: "Thomas Brandt", role: "Head of Purchasing", company: "Global Tier-1 Drivetrain Supplier", rating: 5 },
+    { quote: "{brand} cut our housing cost by 12% through DFM suggestions and has delivered zero-ppm for three years running. They behave like an extension of our engineering team.", author: "Thomas Brandt", role: "Head of Purchasing", company: "Global Tier-1 Drivetrain Supplier", rating: 5 },
     { quote: "Their forging quality and documentation discipline made our NACE qualification painless.", author: "Sara Al-Mansoori", role: "QA Manager", company: "Gulf Process Equipment", rating: 5 },
     { quote: "From prototype to 200k units a year without a single line stoppage.", author: "Kenji Watanabe", role: "Supply Chain Director", company: "Heavy Equipment OEM", rating: 5 },
   ],

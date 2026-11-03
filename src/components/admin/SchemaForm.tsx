@@ -12,6 +12,7 @@
 import { useId, useState } from "react";
 import { clsx } from "clsx";
 import { ChevronDown, ChevronUp, Copy, Plus, Trash2, X } from "lucide-react";
+import { fieldHelp } from "./field-help";
 
 export type JSONSchema = {
   type?: string | string[];
@@ -105,12 +106,12 @@ function itemLabel(v: Json, index: number): string {
 }
 
 /* ------------------------------ components ------------------------------ */
-export function SchemaForm({ schema, value, onChange }: { schema: JSONSchema; value: Json; onChange: (v: Json) => void }) {
+export function SchemaForm({ schema, value, onChange, path = "" }: { schema: JSONSchema; value: Json; onChange: (v: Json) => void; path?: string }) {
   const ctx: Ctx = { defs: schema.$defs ?? {} };
-  return <Node name="" schema={schema} value={value} onChange={onChange} ctx={ctx} depth={0} required />;
+  return <Node name="" path={path} schema={schema} value={value} onChange={onChange} ctx={ctx} depth={0} required />;
 }
 
-type NodeProps = { name: string; schema: JSONSchema; value: Json; onChange: (v: Json) => void; ctx: Ctx; depth: number; required?: boolean; onRemove?: () => void; label?: string };
+type NodeProps = { name: string; path: string; schema: JSONSchema; value: Json; onChange: (v: Json) => void; ctx: Ctx; depth: number; required?: boolean; onRemove?: () => void; label?: string };
 
 function Node(props: NodeProps) {
   const s = resolve(props.schema, props.ctx);
@@ -128,9 +129,15 @@ function Node(props: NodeProps) {
   return <JsonField {...props} />;
 }
 
-function FieldLabel({ name, label, onRemove, htmlFor }: { name: string; label?: string; onRemove?: () => void; htmlFor?: string }) {
+function Help({ path }: { path: string }) {
+  const h = fieldHelp(path);
+  return h ? <p className="mb-1.5 text-xs leading-snug text-neutral-500">{h}</p> : null;
+}
+
+function FieldLabel({ name, label, onRemove, htmlFor, path }: { name: string; label?: string; onRemove?: () => void; htmlFor?: string; path: string }) {
   if (!name && !label) return null;
   return (
+    <>
     <div className="mb-1 flex items-center justify-between gap-2">
       <label htmlFor={htmlFor} className="text-[13px] font-semibold text-neutral-700">{label ?? humanize(name)}</label>
       {onRemove && (
@@ -139,18 +146,20 @@ function FieldLabel({ name, label, onRemove, htmlFor }: { name: string; label?: 
         </button>
       )}
     </div>
+    <Help path={path} />
+    </>
   );
 }
 
 const inputCls = "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
 
-function StringField({ name, value, onChange, onRemove, label }: NodeProps) {
+function StringField({ name, path, value, onChange, onRemove, label }: NodeProps) {
   const id = useId();
   const v = typeof value === "string" ? value : value == null ? "" : String(value);
   const long = !isHex(v) && (LONG_TEXT.test(name) || v.length > 90 || v.includes("\n"));
   return (
     <div>
-      <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} />
+      <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} path={path} />
       <div className="flex items-start gap-2">
         {isHex(v) && <input type="color" aria-label={`${humanize(name)} colour`} value={v.length === 4 ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}` : v.slice(0, 7)} onChange={(e) => onChange(e.target.value)} className="h-9 w-11 shrink-0 cursor-pointer rounded border border-neutral-300 bg-white p-0.5" />}
         {long ? (
@@ -167,12 +176,12 @@ function StringField({ name, value, onChange, onRemove, label }: NodeProps) {
   );
 }
 
-function NumberField({ name, value, onChange, onRemove, label, s }: NodeProps & { s: JSONSchema }) {
+function NumberField({ name, path, value, onChange, onRemove, label, s }: NodeProps & { s: JSONSchema }) {
   const id = useId();
   const [text, setText] = useState(value == null ? "" : String(value));
   return (
     <div>
-      <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} />
+      <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} path={path} />
       <input
         id={id}
         type="number"
@@ -191,11 +200,14 @@ function NumberField({ name, value, onChange, onRemove, label, s }: NodeProps & 
   );
 }
 
-function BoolField({ name, value, onChange, onRemove, label }: NodeProps) {
+function BoolField({ name, path, value, onChange, onRemove, label }: NodeProps) {
   const on = value === true;
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-white px-3 py-2">
-      <span className="text-[13px] font-semibold text-neutral-700">{label ?? humanize(name)}</span>
+      <span>
+        <span className="block text-[13px] font-semibold text-neutral-700">{label ?? humanize(name)}</span>
+        {fieldHelp(path) && name && <span className="block text-xs text-neutral-500">{fieldHelp(path)}</span>}
+      </span>
       <span className="flex items-center gap-2">
         <button type="button" role="switch" aria-checked={on} aria-label={label ?? humanize(name)} onClick={() => onChange(!on)} className={clsx("relative h-6 w-11 rounded-full transition", on ? "bg-indigo-600" : "bg-neutral-300")}>
           <span className={clsx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", on ? "left-[22px]" : "left-0.5")} />
@@ -206,11 +218,11 @@ function BoolField({ name, value, onChange, onRemove, label }: NodeProps) {
   );
 }
 
-function EnumField({ name, value, onChange, onRemove, label, options, required }: NodeProps & { options: (string | number)[] }) {
+function EnumField({ name, path, value, onChange, onRemove, label, options, required }: NodeProps & { options: (string | number)[] }) {
   const id = useId();
   return (
     <div>
-      <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} />
+      <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} path={path} />
       <select id={id} className={inputCls} value={value == null ? "" : String(value)} onChange={(e) => onChange(typeof options[0] === "number" ? Number(e.target.value) : e.target.value)}>
         {!required && value == null && <option value="">—</option>}
         {options.map((o) => (
@@ -221,7 +233,7 @@ function EnumField({ name, value, onChange, onRemove, label, options, required }
   );
 }
 
-function ObjectField({ name, value, onChange, ctx, depth, s, onRemove, label }: NodeProps & { s: JSONSchema }) {
+function ObjectField({ name, path, value, onChange, ctx, depth, s, onRemove, label }: NodeProps & { s: JSONSchema }) {
   const obj = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, Json>) : {};
   const required = new Set(s.required ?? []);
   const keys = Object.keys(s.properties ?? {});
@@ -241,11 +253,11 @@ function ObjectField({ name, value, onChange, ctx, depth, s, onRemove, label }: 
     <div className="space-y-4">
       <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
         {present.filter(simple).map((k) => (
-          <Node key={k} name={k} schema={s.properties![k]} value={obj[k]} onChange={(v) => set(k, v)} ctx={ctx} depth={depth + 1} required={required.has(k)} onRemove={required.has(k) ? undefined : () => del(k)} />
+          <Node key={k} name={k} path={path ? `${path}.${k}` : k} schema={s.properties![k]} value={obj[k]} onChange={(v) => set(k, v)} ctx={ctx} depth={depth + 1} required={required.has(k)} onRemove={required.has(k) ? undefined : () => del(k)} />
         ))}
       </div>
       {present.filter((k) => !simple(k)).map((k) => (
-        <Node key={k} name={k} schema={s.properties![k]} value={obj[k]} onChange={(v) => set(k, v)} ctx={ctx} depth={depth + 1} required={required.has(k)} onRemove={required.has(k) ? undefined : () => del(k)} />
+        <Node key={k} name={k} path={path ? `${path}.${k}` : k} schema={s.properties![k]} value={obj[k]} onChange={(v) => set(k, v)} ctx={ctx} depth={depth + 1} required={required.has(k)} onRemove={required.has(k) ? undefined : () => del(k)} />
       ))}
       {missing.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
@@ -261,22 +273,22 @@ function ObjectField({ name, value, onChange, ctx, depth, s, onRemove, label }: 
   );
   if (depth === 0 || !name) return body;
   return (
-    <Collapsible title={label ?? humanize(name)} onRemove={onRemove} defaultOpen={depth <= 1}>
+    <Collapsible title={label ?? humanize(name)} onRemove={onRemove} defaultOpen={depth <= 1} help={fieldHelp(path)}>
       {body}
     </Collapsible>
   );
 }
 
-function KeyedRecord({ name, value, onChange, ctx, depth, keys, valueSchema, onRemove, label }: NodeProps & { keys: string[]; valueSchema: JSONSchema }) {
+function KeyedRecord({ name, path, value, onChange, ctx, depth, keys, valueSchema, onRemove, label }: NodeProps & { keys: string[]; valueSchema: JSONSchema }) {
   const obj = (value && typeof value === "object" ? value : {}) as Record<string, Json>;
   const vt = typeOf(resolve(valueSchema, ctx));
   const body = (
     <div className="grid gap-3 sm:grid-cols-2">
       {keys.map((k) =>
         vt === "boolean" ? (
-          <BoolField key={k} name={k} schema={valueSchema} value={obj[k] ?? false} onChange={(v) => onChange({ ...obj, [k]: v })} ctx={ctx} depth={depth + 1} />
+          <BoolField key={k} name={k} path={path} schema={valueSchema} value={obj[k] ?? false} onChange={(v) => onChange({ ...obj, [k]: v })} ctx={ctx} depth={depth + 1} />
         ) : (
-          <Node key={k} name={k} schema={valueSchema} value={obj[k] ?? ""} onChange={(v) => {
+          <Node key={k} name={k} path={path} schema={valueSchema} value={obj[k] ?? ""} onChange={(v) => {
             const next = { ...obj };
             if (v === "" || v == null) delete next[k];
             else next[k] = v;
@@ -287,10 +299,10 @@ function KeyedRecord({ name, value, onChange, ctx, depth, keys, valueSchema, onR
     </div>
   );
   if (depth === 0 || !name) return body;
-  return <Collapsible title={label ?? humanize(name)} onRemove={onRemove} defaultOpen={depth <= 1}>{body}</Collapsible>;
+  return <Collapsible title={label ?? humanize(name)} onRemove={onRemove} defaultOpen={depth <= 1} help={fieldHelp(path)}>{body}</Collapsible>;
 }
 
-function ArrayField({ name, value, onChange, ctx, depth, s, onRemove, label }: NodeProps & { s: JSONSchema }) {
+function ArrayField({ name, path, value, onChange, ctx, depth, s, onRemove, label }: NodeProps & { s: JSONSchema }) {
   const list = Array.isArray(value) ? value : [];
   const itemSchema = resolve(s.items, ctx);
   const primitive = !["object", "array"].includes(typeOf(itemSchema) ?? "") && !itemSchema.properties;
@@ -314,7 +326,7 @@ function ArrayField({ name, value, onChange, ctx, depth, s, onRemove, label }: N
     <div className="space-y-2">
       {list.map((item, i) => (
         <div key={i} className="flex items-start gap-1">
-          <div className="flex-1"><Node name="" schema={itemSchema} value={item} onChange={(v) => update(i, v)} ctx={ctx} depth={depth + 1} required /></div>
+          <div className="flex-1"><Node name="" path={path} schema={itemSchema} value={item} onChange={(v) => update(i, v)} ctx={ctx} depth={depth + 1} required /></div>
           <button type="button" className={iconBtn} onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up"><ChevronUp className="size-4" /></button>
           <button type="button" className={iconBtn} onClick={() => move(i, 1)} disabled={i === list.length - 1} aria-label="Move down"><ChevronDown className="size-4" /></button>
           <button type="button" className={clsx(iconBtn, "hover:text-red-600")} onClick={() => onChange(list.filter((_, k) => k !== i))} aria-label="Delete"><Trash2 className="size-4" /></button>
@@ -349,7 +361,7 @@ function ArrayField({ name, value, onChange, ctx, depth, s, onRemove, label }: N
             </div>
             {open === i && (
               <div className="border-t border-neutral-100 p-4">
-                <Node name="" schema={itemSchema} value={item} onChange={(v) => update(i, v)} ctx={ctx} depth={depth + 1} required />
+                <Node name="" path={path} schema={itemSchema} value={item} onChange={(v) => update(i, v)} ctx={ctx} depth={depth + 1} required />
               </div>
             )}
           </div>
@@ -362,19 +374,19 @@ function ArrayField({ name, value, onChange, ctx, depth, s, onRemove, label }: N
   );
   if (depth === 0) return body;
   return (
-    <Collapsible title={`${label ?? humanize(name)}`} badge={String(list.length)} onRemove={onRemove} defaultOpen={(depth <= 1 && list.length <= 8) || name === "sections"}>
+    <Collapsible title={`${label ?? humanize(name)}`} help={fieldHelp(path)} badge={String(list.length)} onRemove={onRemove} defaultOpen={(depth <= 1 && list.length <= 8) || name === "sections"}>
       {body}
     </Collapsible>
   );
 }
 
-function JsonField({ name, value, onChange, onRemove, label }: NodeProps) {
+function JsonField({ name, path, value, onChange, onRemove, label }: NodeProps) {
   const id = useId();
   const [text, setText] = useState(() => JSON.stringify(value ?? {}, null, 2));
   const [err, setErr] = useState("");
   return (
     <div>
-      <FieldLabel name={name} label={(label ?? humanize(name || "value")) + " (JSON)"} onRemove={onRemove} htmlFor={id} />
+      <FieldLabel name={name} label={(label ?? humanize(name || "value")) + " (JSON)"} onRemove={onRemove} htmlFor={id} path={path} />
       <textarea
         id={id}
         className={clsx(inputCls, "min-h-24 font-mono text-xs", err && "border-red-500")}
@@ -395,7 +407,7 @@ function JsonField({ name, value, onChange, onRemove, label }: NodeProps) {
   );
 }
 
-function Collapsible({ title, children, defaultOpen, badge, onRemove }: { title: string; children: React.ReactNode; defaultOpen?: boolean; badge?: string; onRemove?: () => void }) {
+function Collapsible({ title, children, defaultOpen, badge, onRemove, help }: { title: string; children: React.ReactNode; defaultOpen?: boolean; badge?: string; onRemove?: () => void; help?: string }) {
   const [open, setOpen] = useState(!!defaultOpen);
   return (
     <section className="rounded-lg border border-neutral-200 bg-neutral-50/60">
@@ -407,7 +419,12 @@ function Collapsible({ title, children, defaultOpen, badge, onRemove }: { title:
         </button>
         {onRemove && <button type="button" onClick={() => confirm(`Remove “${title}” and everything in it?`) && onRemove()} className="mr-3 text-neutral-400 hover:text-red-600" aria-label={`Remove ${title}`} title="Remove"><X className="size-4" /></button>}
       </div>
-      {open && <div className="border-t border-neutral-200 p-4">{children}</div>}
+      {open && (
+        <div className="border-t border-neutral-200 p-4">
+          {help && <p className="mb-3 text-xs leading-snug text-neutral-500">{help}</p>}
+          {children}
+        </div>
+      )}
     </section>
   );
 }

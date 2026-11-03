@@ -52,7 +52,7 @@ function DesktopItem({ item, pathname }: { item: NavItem; pathname: string }) {
     );
   return (
     <div
-      className="relative"
+      className={item.mega ? undefined : "relative"}
       onMouseEnter={() => { clearTimeout(timer.current); setOpen(true); }}
       onMouseLeave={() => { timer.current = setTimeout(() => setOpen(false), 120); }}
       onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
@@ -61,11 +61,12 @@ function DesktopItem({ item, pathname }: { item: NavItem; pathname: string }) {
         {item.label}
         <ChevronDown className={clsx("size-4 transition", open && "rotate-180")} />
       </button>
+      {/* Mega panels anchor to the full header container (not the menu item) so they never run off-screen. */}
       {open && (
-        <div className={clsx("absolute top-full pt-3 text-foreground", item.mega ? "left-1/2 -translate-x-1/2" : "left-0")}>
-          <div className={clsx("rounded-brand border border-border bg-background p-3 shadow-2xl", item.mega ? "grid w-[min(56rem,90vw)] grid-cols-3 gap-2 p-5" : "w-72")}>
-            {item.href && !item.mega && (
-              <Link href={item.href} className="mb-1 block rounded-brand px-3 py-2 text-sm font-semibold text-primary hover:bg-muted" onClick={() => setOpen(false)}>View all {item.label.toLowerCase()}</Link>
+        <div className={clsx("absolute top-full pt-3 text-foreground", item.mega ? "inset-x-5 md:inset-x-8" : "left-0")}>
+          <div className={clsx("rounded-brand border border-border bg-background p-3 shadow-2xl", item.mega ? "grid max-h-[75vh] grid-cols-2 items-start gap-x-6 gap-y-2 overflow-y-auto p-6 xl:grid-cols-3" : "w-72")}>
+            {item.href && (
+              <Link href={item.href} className={clsx("mb-1 block rounded-brand px-3 py-2 text-sm font-semibold text-primary hover:bg-muted", item.mega && "col-span-full")} onClick={() => setOpen(false)}>View all {item.label.toLowerCase()}</Link>
             )}
             {item.children.map((c) => (
               <div key={c.label} className={clsx(item.mega && "p-1")}>
@@ -186,7 +187,7 @@ export function HeaderClient({ brand, menu, header, announcement, topBar, icons,
           scrolled && !transparent && "shadow-[0_8px_30px_-12px_rgb(0_0_0/0.15)]",
         )}
       >
-        <div className={clsx("container-brand flex items-center gap-6 transition-all", scrolled ? "h-16" : "h-20")}>
+        <div className={clsx("container-brand relative flex items-center gap-6 transition-all", scrolled ? "h-16" : "h-20")}>
           {centered ? (
             <>
               <nav aria-label="Main" className="hidden flex-1 items-center lg:flex">{menu.slice(0, Math.ceil(menu.length / 2)).map((i) => <DesktopItem key={i.label} item={i} pathname={pathname} />)}</nav>

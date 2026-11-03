@@ -12,7 +12,7 @@ export const content: SiteConfigInput["content"] = {
   ],
   infrastructure: [],
   testimonials: [
-    { quote: "Northstar didn’t just tell us what to do – they sat with our teams and built it. Our forecasting accuracy improved 31% in two quarters.", author: "Rachel Adeyemi", role: "COO", company: "Meridian Retail Group", rating: 5 },
+    { quote: "{brand} didn’t just tell us what to do – they sat with our teams and built it. Our forecasting accuracy improved 31% in two quarters.", author: "Rachel Adeyemi", role: "COO", company: "Meridian Retail Group", rating: 5 },
     { quote: "The most senior, hands-on consulting team we’ve worked with. They tied their fees to our outcomes and over-delivered.", author: "Jonas Lindqvist", role: "CFO", company: "Nordvik Insurance", rating: 5 },
     { quote: "From strategy to a live GenAI assistant used by 3,000 agents in under six months.", author: "Priya Natarajan", role: "Chief Digital Officer", company: "Helios Health", rating: 5 },
   ],

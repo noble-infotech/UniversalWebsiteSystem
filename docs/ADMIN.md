@@ -18,6 +18,8 @@ Every website has its own admin at **`/admin`**, for example `https://your-site.
 | **Services, Products & categories, Shop settings** | Services; products with prices, variants, stock and images; currency, tax, shipping, coupons, payment methods |
 | **Integrations, SEO** | Analytics and pixel IDs, WhatsApp, chat, popups, social sharing; titles, descriptions, social image, robots |
 
+Most fields show a short explanation underneath. Text fields accept name placeholders such as `{brand}` and `{company}`, which are filled in automatically (see [CONTENT.md](CONTENT.md#name-placeholders)), so renaming the company in **Company profile** updates the whole site. To change the name shown in the **logo**, upload a new logo image or remove the logo images to use a text logo.
+
 Every editor offers **Save**, **Discard**, **Reset to file defaults** and **Edit as JSON** (for power users). Before saving, the whole site configuration is validated, including broken menu links, unknown categories and duplicate URLs. Problems are listed and nothing is saved until they're fixed. Saved changes appear on the live site immediately.
 
 ## One-time setup on Vercel (per website)

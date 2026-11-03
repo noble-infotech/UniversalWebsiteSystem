@@ -24,7 +24,7 @@ export const company: SiteConfigInput["company"] = {
 };
 
 export const story: SiteConfigInput["story"] = {
-  about: "Northstar was founded by former strategy partners and engineers who were tired of decks that never shipped. We pair senior strategists with data scientists and product engineers so recommendations turn into working software – and measurable P&L impact – within quarters, not years.",
+  about: "{brand} was founded by former strategy partners and engineers who were tired of decks that never shipped. We pair senior strategists with data scientists and product engineers so recommendations turn into working software – and measurable P&L impact – within quarters, not years.",
   aboutImage: img("photo-1522071820081-009f0129c71c"),
   history: "Since 2012 we have delivered 400+ engagements across financial services, retail, healthcare and industrials, growing to 180 consultants across London, Singapore and New York.",
   vision: "A world where every organisation makes decisions with clarity, confidence and data.",

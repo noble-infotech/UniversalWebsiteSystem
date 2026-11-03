@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { siteRegistry, defaultSiteId } from "@sites/index";
 import { SiteConfigSchema, type SiteConfig, type SiteConfigInput } from "./schema";
 import { getStore, type Overrides } from "@/server/store";
+import { applyTokens } from "./tokens";
 
 export const SITE_COOKIE = "uws-site";
 
@@ -33,7 +34,7 @@ export function mergeConfig(id: string, overrides: Overrides): SiteConfigInput {
 export function loadSiteConfig(id: string): SiteConfig {
   const result = SiteConfigSchema.safeParse(baseConfig(id));
   if (!result.success) throw new Error(`Site config "${id}" is invalid:\n${format(result.error.issues)}`);
-  return result.data;
+  return applyTokens(result.data);
 }
 
 async function getOverrides(id: string) {
@@ -63,7 +64,7 @@ export async function resolveSiteConfig(id: string): Promise<SiteConfig> {
   if (hit && hit.key === key) return hit.config;
   const result = SiteConfigSchema.safeParse(mergeConfig(id, o.data));
   let config: SiteConfig;
-  if (result.success) config = result.data;
+  if (result.success) config = applyTokens(result.data);
   else {
     console.error(`[config] stored overrides for "${id}" are invalid – serving file config:\n${format(result.error.issues)}`);
     config = loadSiteConfig(id);

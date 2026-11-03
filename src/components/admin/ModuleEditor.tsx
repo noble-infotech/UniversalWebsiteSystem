@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { AlertTriangle, CheckCircle2, Code2, ExternalLink, RotateCcw, Save, Undo2 } from "lucide-react";
 import { SchemaForm, type JSONSchema } from "./SchemaForm";
+import { TOKEN_HELP, fieldHelp } from "./field-help";
 
 type Issue = { path: string; message: string; level?: string };
 
@@ -70,6 +71,8 @@ export function ModuleEditor({ module, label, help, schema, initial, overridden,
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">{label}</h1>
           <p className="mt-1 max-w-2xl text-sm text-neutral-600">{help}</p>
+          {fieldHelp(module) && <p className="mt-1 max-w-2xl text-sm text-neutral-600">{fieldHelp(module)}</p>}
+          {["company", "pages", "story", "content", "seo", "footer", "navigation", "services", "catalog"].includes(module) && <p className="mt-2 max-w-2xl rounded-md bg-indigo-50 px-3 py-2 text-xs text-indigo-900">{TOKEN_HELP}</p>}
           <p className="mt-2 text-xs text-neutral-500">{overridden ? "Edited in admin (stored in the database)." : "Showing values from the configuration files – saving stores your edited copy."}</p>
         </div>
         <div className="flex gap-2">
@@ -118,7 +121,7 @@ export function ModuleEditor({ module, label, help, schema, initial, overridden,
         </div>
       ) : (
         <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
-          <SchemaForm key={formKey} schema={schema} value={value} onChange={setValue} />
+          <SchemaForm key={formKey} path={module} schema={schema} value={value} onChange={setValue} />
         </div>
       )}
 
