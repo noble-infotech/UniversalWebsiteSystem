@@ -1,0 +1,96 @@
+import type { SiteConfigInput } from "@/core/config/schema";
+import { img } from "../_shared/helpers";
+
+export const content: SiteConfigInput["content"] = {
+  whatWeDo: [
+    { title: "Precision machining", description: "140+ CNC machines for turned and prismatic parts with micron-level accuracy.", icon: "cog", image: img("photo-1565043666747-69f6646db940", 900), href: "/services/cnc-machining" },
+    { title: "Closed-die forging", description: "From 0.5 to 120 kg forgings with in-house die design and heat treatment.", icon: "hammer", image: img("photo-1504328345606-18bbc8c9d7d1", 900), href: "/services/closed-die-forging" },
+    { title: "Fabrication & assembly", description: "Certified weldments, frames and tested sub-assemblies ready for your line.", icon: "wrench", image: img("photo-1513828583688-c52646db42da", 900), href: "/services/fabrication-welding" },
+  ],
+  process: [
+    { title: "Share drawings", description: "Send your RFQ with 2D/3D files – we sign NDAs on request." },
+    { title: "DFM & quote", description: "Engineering review and detailed quotation within 72 hours." },
+    { title: "Sample & approve", description: "First articles with PPAP / FAI documentation." },
+    { title: "Produce & deliver", description: "SPC-controlled production and on-time global delivery." },
+  ],
+  infrastructure: [
+    { title: "3 plants · 42,000 m²", description: "Machining, forging and fabrication facilities in Chakan and Ranjangaon.", image: img("photo-1567789884554-0b844b597180", 900), icon: "factory" },
+    { title: "Metallurgy & metrology lab", description: "Spectrometer, tensile, impact and Zeiss CMM inspection.", image: img("photo-1581092918056-0c4c3acd3789", 900), icon: "microscope" },
+    { title: "2,500-ton forging line", description: "Automated press line with induction billet heating.", image: img("photo-1504917595217-d4dc5ebe6122", 900), icon: "hammer" },
+    { title: "Bonded warehouses", description: "Pune & Düsseldorf hubs for VMI and just-in-time delivery.", image: img("photo-1553413077-190dd305871c", 900), icon: "warehouse" },
+  ],
+  testimonials: [
+    { quote: "Apex Forge cut our housing cost by 12% through DFM suggestions and has delivered zero-ppm for three years running. They behave like an extension of our engineering team.", author: "Thomas Brandt", role: "Head of Purchasing", company: "Global Tier-1 Drivetrain Supplier", rating: 5 },
+    { quote: "Their forging quality and documentation discipline made our NACE qualification painless.", author: "Sara Al-Mansoori", role: "QA Manager", company: "Gulf Process Equipment", rating: 5 },
+    { quote: "From prototype to 200k units a year without a single line stoppage.", author: "Kenji Watanabe", role: "Supply Chain Director", company: "Heavy Equipment OEM", rating: 5 },
+  ],
+  faqs: [
+    { question: "Which industries do you serve?", answer: "Automotive and EV, energy and oil & gas, aerospace, rail and heavy equipment.", category: "General" },
+    { question: "Do you sign NDAs?", answer: "Yes – we sign mutual NDAs before receiving drawings and treat all IP as strictly confidential.", category: "General" },
+    { question: "What certifications do you hold?", answer: "ISO 9001, IATF 16949, AS9100D and ISO 14001.", category: "Quality" },
+    { question: "Can you ship internationally?", answer: "We export to 28 countries under EXW, FOB, CIF or DAP terms and operate a bonded warehouse in Germany.", category: "Logistics" },
+    { question: "What is your minimum order quantity?", answer: "MOQ depends on the process – typically 50 pieces for machined parts and 500 for forgings.", category: "Products" },
+  ],
+  posts: [
+    {
+      slug: "forging-vs-casting",
+      title: "Forging vs. casting: choosing the right process for safety-critical parts",
+      excerpt: "Grain flow, porosity and fatigue life – a practical guide for design engineers.",
+      body: "Choosing between forging and casting is one of the earliest – and most expensive – decisions in a component’s life.\n\n## Why grain flow matters\nForging aligns the metal’s grain structure with the part geometry, which dramatically improves fatigue strength and impact toughness.\n\n## When casting still wins\nComplex internal cavities and very low volumes may favour casting.\n\n## Our recommendation\n- Use forging for safety-critical, cyclically loaded parts\n- Consider near-net forging plus machining to reduce material waste\n- Involve your supplier during design to optimise parting lines",
+      cover: img("photo-1504917595217-d4dc5ebe6122", 1400),
+      author: "Priya Shah",
+      date: "2026-09-18",
+      category: "Engineering",
+      tags: ["forging", "design"],
+    },
+    {
+      slug: "solar-powered-manufacturing",
+      title: "How we made our plants 38% solar-powered",
+      excerpt: "Inside our 2 MW rooftop installation and what it means for customers’ Scope 3 targets.",
+      body: "Sustainability is now a purchasing criterion. Here is how we reduced grid electricity consumption by over a third.\n\n## The project\nA 2 MW rooftop array across two plants, commissioned in 14 weeks.\n\n## The impact\n- 2,600 tonnes CO₂ avoided per year\n- Product carbon footprints available on request",
+      cover: img("photo-1509391366360-2e959784a276", 1400),
+      author: "Ananya Rao",
+      date: "2026-07-02",
+      category: "Sustainability",
+      tags: ["sustainability", "energy"],
+    },
+    {
+      slug: "ppap-checklist",
+      title: "The PPAP checklist we wish every new supplier had",
+      excerpt: "18 elements, common pitfalls and how to get approval first time.",
+      body: "Production Part Approval Process (PPAP) can feel bureaucratic, but it is the foundation of a stable supply relationship.\n\n## The essentials\n- Design records and engineering change documents\n- Process flow, PFMEA and control plan\n- Measurement system analysis and capability studies",
+      cover: img("photo-1581092160562-40aa08e78837", 1400),
+      author: "Quality Team",
+      date: "2026-05-11",
+      category: "Quality",
+      tags: ["quality", "automotive"],
+    },
+  ],
+  events: [
+    { title: "Hannover Messe 2027", date: "2027-04-12", endDate: "2027-04-16", location: "Hall 4, Stand C21 · Hannover, Germany", description: "See our new EV housing line and meet our engineering team.", type: "event" },
+    { title: "IMTEX Forming 2027", date: "2027-01-22", endDate: "2027-01-26", location: "Bengaluru, India", type: "event" },
+    { title: "Plant 3 groundbreaking", date: "2026-12-05", description: "A new 15,000 m² machining facility dedicated to aerospace.", type: "announcement" },
+  ],
+  gallery: [
+    { src: img("photo-1504917595217-d4dc5ebe6122", 1000), alt: "Welding sparks", caption: "Fabrication bay", category: "Fabrication" },
+    { src: img("photo-1565043666747-69f6646db940", 1000), alt: "CNC machining", caption: "5-axis machining cell", category: "Machining" },
+    { src: img("photo-1567789884554-0b844b597180", 1000), alt: "Factory floor", caption: "Plant 1 shop floor", category: "Facilities" },
+    { src: img("photo-1581092918056-0c4c3acd3789", 1000), alt: "Quality inspection", caption: "Metrology lab", category: "Quality" },
+    { src: img("photo-1504328345606-18bbc8c9d7d1", 1000), alt: "Forged parts", caption: "Forging line output", category: "Forging" },
+    { src: img("photo-1553413077-190dd305871c", 1000), alt: "Warehouse", caption: "Export warehouse", category: "Facilities" },
+    { src: img("photo-1581091226825-a6a2a5aee158", 1000), alt: "Engineer at work", caption: "Assembly line", category: "Machining" },
+    { src: img("photo-1513828583688-c52646db42da", 1000), alt: "Steel structure", caption: "Structural weldments", category: "Fabrication" },
+  ],
+  projects: [
+    { slug: "ev-motor-housing", title: "EV motor housing industrialisation", client: "European EV Maker", category: "Automotive", year: "2025", summary: "Took a new e-axle housing from prototype to 120k units/year in 9 months.", challenge: "Thin-wall aluminium housing with 0.02 mm bore position and aggressive launch timeline.", solution: "Dedicated 5-axis cell with custom hydraulic fixtures, in-process probing and pressure-decay testing.", results: ["Launch 6 weeks ahead of plan", "Cpk > 1.67 on all critical features", "11% cost reduction vs. incumbent"], image: img("photo-1581091226825-a6a2a5aee158", 1400) },
+    { slug: "subsea-flanges", title: "NACE-compliant subsea flanges", client: "Middle-East EPC", category: "Energy", year: "2024", summary: "Supplied 4,800 F22 forged flanges qualified for sour service.", results: ["Zero NCRs across 4,800 pieces", "Third-party inspection passed first time"], image: img("photo-1530124566582-a618bc2615dc", 1400) },
+    { slug: "landing-gear-components", title: "Landing-gear machined components", client: "Aerospace Tier-1", category: "Aerospace", year: "2023", summary: "AS9100 production of titanium and 300M steel landing-gear parts.", results: ["First-article approval in one iteration", "100% on-time delivery for 18 months"], image: img("photo-1517976487492-5750f3195933", 1400) },
+  ],
+  clients: [{ name: "VOLTRA" }, { name: "Krafton Motors" }, { name: "NORDAX" }, { name: "Helix Energy" }, { name: "AEROMAX" }, { name: "Tata-Ridge" }, { name: "BAUWERK" }, { name: "Orion Rail" }],
+  partners: [{ name: "Siemens Digital" }, { name: "Sandvik Coromant" }, { name: "Zeiss Metrology" }, { name: "DMG MORI" }],
+  jobs: [
+    { title: "CNC Programmer (5-axis)", department: "Production", location: "Pune, India", type: "Full-time", description: "Program and prove out 5-axis processes on DMG Mori and Mazak machines.", requirements: ["4+ years with Siemens NX CAM or Mastercam", "Experience with aerospace or automotive tolerances"] },
+    { title: "Quality Engineer – APQP", department: "Quality", location: "Pune, India", type: "Full-time", description: "Own APQP and PPAP for new automotive programmes.", requirements: ["IATF 16949 core tools", "Customer-facing communication skills"] },
+    { title: "Key Account Manager – DACH", department: "Sales", location: "Düsseldorf, Germany", type: "Full-time", description: "Grow relationships with OEMs and tier-1s in Germany, Austria and Switzerland.", requirements: ["Technical sales background", "German & English fluency"] },
+  ],
+};
