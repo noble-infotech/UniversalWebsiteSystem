@@ -2,24 +2,71 @@ import "server-only";
 import postgres from "postgres";
 
 /**
- * Postgres connection (Neon, Supabase, Vercel Postgres, RDS, self-hosted…).
- * Reads DATABASE_URL, or POSTGRES_URL as set by the Vercel/Neon integration.
- * Tables are created automatically on first use.
+ * ONE DATABASE PER SITE
+ * ---------------------------------------------------------------------------
+ * Each website uses its own Postgres database (Neon, Supabase, Vercel Postgres,
+ * RDS, self-hosted…). Resolution order for site "maison-lumiere":
+ *
+ *   1. DATABASE_URL_MAISON_LUMIERE   – site-specific (use when several sites share one deployment)
+ *   2. POSTGRES_URL_MAISON_LUMIERE
+ *   3. DATABASE_URL / POSTGRES_URL   – the project's own database (normal case: one Vercel project per site;
+ *                                      Vercel/Neon set this automatically)
+ *
+ * Set ISOLATE_SITE_DATABASES=true to forbid step 3 for shared deployments: a site
+ * without its own URL then gets no database (read-only admin) instead of sharing one.
+ * Each database gets its own tables, created automatically on first use.
  */
-const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-const g = globalThis as unknown as { __uwsSql?: postgres.Sql; __uwsSchema?: Promise<void> };
+type Pool = { sql: postgres.Sql; schema?: Promise<void> };
+const g = globalThis as unknown as { __uwsPools?: Map<string, Pool> };
+const pools = (g.__uwsPools ??= new Map<string, Pool>());
 
-export const hasDatabase = Boolean(url);
+const envSuffix = (siteId: string) => siteId.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 
-export function sql(): postgres.Sql {
-  if (!url) throw new Error("DATABASE_URL is not set");
-  g.__uwsSql ??= postgres(url, { max: 3, idle_timeout: 20, prepare: false, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" });
-  return g.__uwsSql;
+export function databaseUrlFor(siteId: string): string | undefined {
+  const s = envSuffix(siteId);
+  const specific = process.env[`DATABASE_URL_${s}`] || process.env[`POSTGRES_URL_${s}`];
+  if (specific) return specific;
+  if (process.env.ISOLATE_SITE_DATABASES === "true") return undefined;
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
 }
 
-export function ensureSchema(): Promise<void> {
-  g.__uwsSchema ??= (async () => {
-    const db = sql();
+export function databaseEnvHint(siteId: string) {
+  return `DATABASE_URL (or DATABASE_URL_${envSuffix(siteId)} on a shared deployment)`;
+}
+
+/** Short, non-secret description of where a site's data lives (shown in the admin). */
+export function databaseLabel(siteId: string): string | undefined {
+  const url = databaseUrlFor(siteId);
+  if (!url) return undefined;
+  try {
+    const u = new URL(url);
+    return `${u.hostname}/${u.pathname.replace(/^\//, "")}`;
+  } catch {
+    return "configured";
+  }
+}
+
+function pool(url: string): Pool {
+  let p = pools.get(url);
+  if (!p) {
+    p = { sql: postgres(url, { max: 3, idle_timeout: 20, prepare: false, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" }) };
+    pools.set(url, p);
+  }
+  return p;
+}
+
+export function sqlFor(siteId: string): postgres.Sql {
+  const url = databaseUrlFor(siteId);
+  if (!url) throw new Error(`No database configured for site "${siteId}". Set ${databaseEnvHint(siteId)}.`);
+  return pool(url).sql;
+}
+
+/** Create tables in this site's database if they don't exist yet (once per database per process). */
+export function ensureSchema(siteId: string): Promise<void> {
+  const url = databaseUrlFor(siteId)!;
+  const p = pool(url);
+  p.schema ??= (async () => {
+    const db = p.sql;
     await db`CREATE TABLE IF NOT EXISTS uws_site_overrides (
       site_id text PRIMARY KEY,
       data jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -47,8 +94,8 @@ export function ensureSchema(): Promise<void> {
     )`;
     await db`CREATE INDEX IF NOT EXISTS uws_orders_site ON uws_orders (site_id, created_at DESC)`;
   })().catch((e) => {
-    g.__uwsSchema = undefined;
+    p.schema = undefined;
     throw e;
   });
-  return g.__uwsSchema;
+  return p.schema;
 }

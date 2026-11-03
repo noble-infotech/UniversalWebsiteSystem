@@ -41,7 +41,7 @@ API routes depend only on these interfaces. To go live, implement an adapter and
 
 ## Orders and database
 
-**Built in:** connect Postgres (`DATABASE_URL`) and orders, enquiries and admin edits are stored automatically. See [ADMIN.md](ADMIN.md). Tables: `uws_orders`, `uws_enquiries`, `uws_site_overrides` (created on first use). For a different backend:
+**Built in:** connect the site's own Postgres database (`DATABASE_URL`, or `DATABASE_URL_<SITE_ID>`; one database per site) and orders, enquiries and admin edits are stored automatically. See [ADMIN.md](ADMIN.md). Tables: `uws_orders`, `uws_enquiries`, `uws_site_overrides` (created on first use). For a different backend:
 
 1. Create tables such as `orders`, `order_lines`, `customers` and `payments`. The `Order` type in `src/core/commerce/orders.ts` is the shape to store.
 2. Implement `OrderRepository` with `durable: true` (Prisma, Drizzle, or a Supabase client).

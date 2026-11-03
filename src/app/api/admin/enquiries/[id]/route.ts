@@ -8,6 +8,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const { status } = (await req.json().catch(() => ({}))) as { status?: string };
   if (!["new", "read", "archived"].includes(status ?? "")) return NextResponse.json({ ok: false, error: "Invalid status" }, { status: 400 });
-  await getStore().setEnquiryStatus(auth.siteId, id, status as "new");
+  await getStore(auth.siteId).setEnquiryStatus(auth.siteId, id, status as "new");
   return NextResponse.json({ ok: true });
 }

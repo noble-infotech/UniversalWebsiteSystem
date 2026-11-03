@@ -9,13 +9,14 @@ import { AdminNav } from "@/components/admin/AdminNav";
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   if (!(await getAdminSession())) redirect("/admin/login");
   const site = await getSite();
-  const store = getStore();
+  const store = getStore(site.id);
   return (
     <div className="lg:pl-64">
       <AdminNav
         brand={site.company.brandName}
         siteId={site.id}
         storeKind={store.kind}
+        storeLocation={store.location}
         modules={ADMIN_MODULES.map((m) => ({ key: m.key, label: m.label, group: m.group }))}
         showOrders={Boolean(site.features.shop) && site.commerce.enabled}
       />

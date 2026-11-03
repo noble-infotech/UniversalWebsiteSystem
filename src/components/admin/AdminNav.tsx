@@ -5,7 +5,7 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { Database, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, ShoppingBag, X, Download } from "lucide-react";
 
-export function AdminNav({ brand, siteId, storeKind, modules, showOrders }: { brand: string; siteId: string; storeKind: string; modules: { key: string; label: string; group: string }[]; showOrders: boolean }) {
+export function AdminNav({ brand, siteId, storeKind, storeLocation, modules, showOrders }: { brand: string; siteId: string; storeKind: string; storeLocation?: string; modules: { key: string; label: string; group: string }[]; showOrders: boolean }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -21,7 +21,7 @@ export function AdminNav({ brand, siteId, storeKind, modules, showOrders }: { br
       <div className="border-b border-neutral-200 px-5 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Admin</p>
         <p className="truncate font-bold">{brand}</p>
-        <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-500"><Database className="size-3" /> {siteId} · {storeKind === "postgres" ? "database" : storeKind === "file" ? "local files" : "read-only"}</p>
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-500" title={storeLocation}><Database className="size-3 shrink-0" /> <span className="truncate">{siteId} · {storeKind === "postgres" ? `own database${storeLocation ? ` (${storeLocation})` : ""}` : storeKind === "file" ? "local files" : "no database"}</span></p>
       </div>
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Admin">
         <div className="space-y-0.5">

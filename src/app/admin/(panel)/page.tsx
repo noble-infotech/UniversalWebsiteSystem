@@ -3,12 +3,13 @@ import { AlertTriangle, ArrowRight, Box, FileText, Inbox, Layers, ShoppingBag, W
 import { getSite } from "@/core/config/loader";
 import { isEnabled } from "@/core/config/features";
 import { getStore } from "@/server/store";
+import { databaseEnvHint } from "@/server/db";
 import { ADMIN_MODULES } from "@/server/admin-modules";
 import { formatMoney, formatDate } from "@/core/commerce/format";
 
 export default async function AdminDashboard() {
   const site = await getSite();
-  const store = getStore();
+  const store = getStore(site.id);
   const [enquiries, orders, overrides] = await Promise.all([store.listEnquiries(site.id, 200), store.listOrders(site.id, 200), store.getOverrides(site.id)]);
   const newEnquiries = enquiries.filter((e) => e.status === "new").length;
   const revenue = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.totals.total, 0);
@@ -30,7 +31,7 @@ export default async function AdminDashboard() {
       {!store.writable && (
         <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="size-5 shrink-0" />
-          <div><strong>Connect a database to save changes, enquiries and orders.</strong> In Vercel: Storage → Create Database → Neon (Postgres) → connect it to this project, then redeploy. You can browse everything now, but saving is disabled.</div>
+          <div><strong>Connect this website’s own database to save changes, enquiries and orders.</strong> In Vercel: Storage → Create Database → Neon (Postgres) → connect it to this project (sets <code>{databaseEnvHint(site.id)}</code>), then redeploy. You can browse everything now, but saving is disabled.</div>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

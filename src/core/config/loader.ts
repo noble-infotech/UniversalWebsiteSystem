@@ -40,7 +40,7 @@ async function getOverrides(id: string) {
   const hit = overridesCache.get(id);
   if (hit && Date.now() - hit.at < TTL_MS) return hit;
   try {
-    const { data, updatedAt } = await getStore().getOverrides(id);
+    const { data, updatedAt } = await getStore(id).getOverrides(id);
     const entry = { at: Date.now(), data, updatedAt };
     overridesCache.set(id, entry);
     return entry;

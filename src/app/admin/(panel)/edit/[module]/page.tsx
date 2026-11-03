@@ -12,7 +12,7 @@ export default async function EditModule({ params }: { params: Promise<{ module:
   if (!isAdminModule(module)) notFound();
   const meta = ADMIN_MODULES.find((m) => m.key === module)!;
   const siteId = await getSiteId();
-  const store = getStore();
+  const store = getStore(siteId);
   const overrides = (await store.getOverrides(siteId)).data as Record<string, unknown>;
   const overridden = overrides[module] !== undefined;
   const value = overridden ? overrides[module] : (baseConfig(siteId) as Record<string, unknown>)[module];

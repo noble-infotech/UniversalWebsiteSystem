@@ -4,7 +4,7 @@ import { OrderList } from "@/components/admin/OrderList";
 
 export default async function OrdersPage() {
   const site = await getSite();
-  const store = getStore();
+  const store = getStore(site.id);
   const orders = await store.listOrders(site.id, 500);
   return (
     <div>

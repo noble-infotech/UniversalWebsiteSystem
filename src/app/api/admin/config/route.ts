@@ -9,7 +9,7 @@ import { validateSite } from "@/core/config/validate";
 export async function PUT(req: Request) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
-  const store = getStore();
+  const store = getStore(auth.siteId);
   if (!store.writable) return NextResponse.json({ ok: false, error: "Saving is disabled: no database is connected. Add DATABASE_URL (see docs/ADMIN.md)." }, { status: 503 });
   const body = (await req.json().catch(() => null)) as { module?: string; value?: unknown } | null;
   if (!body?.module || !isAdminModule(body.module) || body.value === undefined) return NextResponse.json({ ok: false, error: "Invalid request" }, { status: 400 });
@@ -29,7 +29,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
-  const store = getStore();
+  const store = getStore(auth.siteId);
   if (!store.writable) return NextResponse.json({ ok: false, error: "No database connected." }, { status: 503 });
   const mod = new URL(req.url).searchParams.get("module") ?? "";
   if (!isAdminModule(mod)) return NextResponse.json({ ok: false, error: "Invalid module" }, { status: 400 });

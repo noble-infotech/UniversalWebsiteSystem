@@ -14,13 +14,13 @@ export function getServices(site: SiteConfig) {
   const payments = p === "manual" ? manualPayments : p === "stripe" ? stripePayments(site) : unconfiguredPayments(p);
   const webhook = process.env.FORMS_WEBHOOK_URL || site.integrations.forms.webhookUrl;
   const delivery = site.integrations.forms.provider === "webhook" && webhook ? webhookForms(webhook) : consoleForms;
-  const store = getStore();
+  const store = getStore(site.id);
   const persistent = store.writable;
   return {
     catalog: configCatalog(site),
     inventory: configInventory(site),
     // Database (or local files in dev) when available; otherwise the non-durable demo repository.
-    orders: persistent ? storeOrderRepository() : memoryOrderRepository,
+    orders: persistent ? storeOrderRepository(site.id) : memoryOrderRepository,
     payments,
     shipping: flatRateShipping(site),
     forms: persistent ? storeForms(delivery) : delivery,

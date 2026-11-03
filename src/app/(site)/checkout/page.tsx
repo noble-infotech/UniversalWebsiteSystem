@@ -15,7 +15,7 @@ export default async function CheckoutPage() {
   return (
     <Container className="py-12 md:py-16">
       <h1 className="mb-4 text-3xl md:text-5xl">Checkout</h1>
-      <DemoNotice provider={site.commerce.payment.provider} durable={getStore().writable && (site.commerce.payment.provider === "manual" || Boolean(process.env.STRIPE_SECRET_KEY))} />
+      <DemoNotice provider={site.commerce.payment.provider} durable={getStore(site.id).writable && (site.commerce.payment.provider === "manual" || Boolean(process.env.STRIPE_SECRET_KEY))} />
       <div className="mt-10"><CheckoutForm /></div>
     </Container>
   );

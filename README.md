@@ -45,14 +45,16 @@ See `.env.example`.
 | `SITE_URL` | Public origin for canonical URLs, sitemap and Open Graph tags |
 | `FORMS_WEBHOOK_URL` | Deliver form submissions to a webhook (Zapier, Make, n8n, CRM) |
 | `STRIPE_SECRET_KEY` | Enables the Stripe Checkout adapter when a site uses `payment.provider: "stripe"` |
-| `DATABASE_URL` / `POSTGRES_URL` | Postgres used for admin edits, enquiries and orders |
+| `DATABASE_URL` / `POSTGRES_URL` | **This site's own** Postgres database for admin edits, enquiries and orders (one database per site) |
+| `DATABASE_URL_<SITE_ID>` | Per-site database when several sites share one deployment |
+| `ISOLATE_SITE_DATABASES` | `true` = a site never falls back to the shared `DATABASE_URL` |
 | `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_<SITE_ID>`) | Admin login password |
 | `ADMIN_SECRET` | Key for signing admin sessions |
 | `NEXT_IMAGE_UNOPTIMIZED` | `true` where the server can't reach remote image hosts |
 
 ## Admin dashboard
 
-Each website has an admin at **`/admin`** for editing company details, brand colours and fonts, pages and homepage sections, menus, products, services, content, shop settings and SEO. It also lists **enquiries** and **orders**. Changes are validated and go live immediately. Setup is a free Postgres database plus an `ADMIN_PASSWORD`; see [docs/ADMIN.md](docs/ADMIN.md). Locally it works with zero setup: open http://localhost:3000/admin and use the password `admin`.
+Each website has an admin at **`/admin`** for editing company details, brand colours and fonts, pages and homepage sections, menus, products, services, content, shop settings and SEO. It also lists **enquiries** and **orders**. Changes are validated and go live immediately. Setup is the site's own free Postgres database (each site has a separate one) plus an `ADMIN_PASSWORD`; see [docs/ADMIN.md](docs/ADMIN.md). Locally it works with zero setup: open http://localhost:3000/admin and use the password `admin`.
 
 ## Documentation
 

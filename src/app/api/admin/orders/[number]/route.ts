@@ -11,7 +11,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ number: string
   const { number } = await ctx.params;
   const { status } = (await req.json().catch(() => ({}))) as { status?: OrderStatus };
   if (!status || !STATUSES.includes(status)) return NextResponse.json({ ok: false, error: "Invalid status" }, { status: 400 });
-  const order = await getStore().setOrderStatus(auth.siteId, number, status);
+  const order = await getStore(auth.siteId).setOrderStatus(auth.siteId, number, status);
   if (!order) return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
   return NextResponse.json({ ok: true, order });
 }

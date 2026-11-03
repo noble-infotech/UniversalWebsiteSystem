@@ -4,7 +4,7 @@ import { EnquiryList } from "@/components/admin/EnquiryList";
 
 export default async function EnquiriesPage() {
   const site = await getSite();
-  const store = getStore();
+  const store = getStore(site.id);
   const enquiries = await store.listEnquiries(site.id, 500);
   return (
     <div>

@@ -22,13 +22,29 @@ Every editor offers **Save**, **Discard**, **Reset to file defaults** and **Edit
 
 ## One-time setup on Vercel (per website)
 
-### 1. Add a database (free)
-1. In the Vercel project, open **Storage → Create Database → Neon (Serverless Postgres)**. Choose the free plan and connect it to the project.
-   - This adds `DATABASE_URL` / `POSTGRES_URL` automatically.
-   - **One database can serve all your company websites:** connect the same database to each project. Data is separated by `SITE_ID`.
+### 1. Give the website its own database (free)
+
+**Every website has its own separate database.** Customers' enquiries, orders and edits are never stored together.
+
+1. In the website's Vercel project, open **Storage → Create Database → Neon (Serverless Postgres)**. Choose the free plan and connect it to **this project only**.
+   - This sets `DATABASE_URL` / `POSTGRES_URL` for that project.
+   - Repeat for every customer's project, so each one gets its own database.
+   - Ideally, create it in the **customer's own** Vercel/Neon account, so they own their data and pay for it.
 2. Tables are created automatically on first use. No SQL needed.
 
 Supabase, Railway, AWS RDS or any Postgres also work: just set `DATABASE_URL`.
+
+**Several sites on one deployment** (e.g. the demo with the site switcher): give each site its own URL with a site-specific variable, and turn on strict isolation so a site can never fall back to a shared database:
+
+| Variable | Example |
+|---|---|
+| `DATABASE_URL_MAISON_LUMIERE` | `postgres://…/maison` |
+| `DATABASE_URL_APEX_FORGE` | `postgres://…/apex` |
+| `ISOLATE_SITE_DATABASES` | `true` |
+
+Lookup order for a site is `DATABASE_URL_<SITE_ID>` → `POSTGRES_URL_<SITE_ID>` → `DATABASE_URL` / `POSTGRES_URL`. The last step is skipped when `ISOLATE_SITE_DATABASES=true`. The admin sidebar shows which database the current site is using.
+
+**Data size:** the database stores only text, about 50–500 KB of site edits, ~1 KB per enquiry and ~4 KB per order. A typical business site uses around 10 MB per year, well within free tiers. Images are not stored in the database.
 
 ### 2. Set an admin password
 In **Settings → Environment Variables**:
@@ -45,13 +61,14 @@ Go to **Deployments → ⋯ → Redeploy**, then open `/admin`.
 
 ## How it works
 
-- **Storage:**
-  - **Postgres** when `DATABASE_URL` / `POSTGRES_URL` is set.
+- **Storage (one per site):**
+  - **The site's own Postgres database** when one is configured (see above).
   - **Local JSON files** in `.data/` during local development. Zero setup; the dev password is `admin`.
   - **Read-only** on a host without a database: you can browse the admin, but saving is disabled and a banner explains why.
+  - Every store is bound to one site and refuses to read or write another site's data. Rows also carry the site id as a second safeguard.
 - **What's stored:** admin edits are saved per *module* (company, theme, pages, catalog…) as an override of the configuration files in `sites/<id>/`. The files remain the defaults. **Reset to file defaults** removes the override for that module.
 - **When changes appear:** immediately on the server that saved them, and on other server instances within 10 seconds.
-- **Orders and enquiries:** saved to the same database, so the "demo" order mode turns into real, persistent orders.
+- **Orders and enquiries:** saved to the site's own database alongside its edits, so the "demo" order mode turns into real, persistent orders.
 - **Security:**
   - The password is compared in constant time.
   - Login is rate-limited (5 attempts per 5 minutes per IP).
@@ -75,5 +92,5 @@ The admin edits an existing website. A **new** company still needs its own folde
 1. Run `npm run new-site -- new-company --from maison-lumiere`, or ask Claude to do it. Push the change.
 2. In Vercel, add a new project from the same repository:
    - set `SITE_ID=new-company`, `ENABLE_SITE_SWITCHER=false`, `ADMIN_PASSWORD`, `ADMIN_SECRET`;
-   - connect the shared database.
+   - create and connect **a new database for this customer** (Storage → Neon).
 3. Open `https://<new-project>.vercel.app/admin` and customise everything from there.
