@@ -79,13 +79,24 @@ Go to **Deployments → ⋯ → Redeploy**, then open `/admin`.
   - `/admin` is excluded from search engines.
 - **Backups and migration:** **Export config (JSON)** in the sidebar downloads the full effective configuration, for backup or to copy changes back into `sites/<id>/` files.
 
-## Images
+## Images (upload)
 
-Image fields take a URL or a path, and a preview appears next to the field. To use your own images, either:
-- add them to `public/sites/<id>/` in the repository and reference them as `/sites/<id>/photo.jpg`, or
-- paste a URL from any image host or CDN (Cloudinary, ImageKit, Vercel Blob, etc.).
+Every image field has **Upload** and **Library** buttons, and you can also drag an image onto it. Lists of images (product photos, galleries) appear as a thumbnail grid: upload several at once, edit alt text and captions, and reorder or remove images. **Media library** in the sidebar shows all uploaded images, where you can upload in bulk, copy an image's URL or delete it.
 
-Direct uploads from the admin are a planned extension (Vercel Blob).
+- **Large photos are resized in the browser** (max 2400 px, WebP) before uploading, so phone photos upload quickly. The maximum upload size is 4 MB after resizing.
+- **Formats:** JPG, PNG, WebP, GIF, AVIF, SVG and ICO. The real file type is checked from the file's content, and scripts are removed from SVGs.
+- **Pasting an image URL** still works.
+
+### Where images are stored (per website, chosen automatically)
+
+| Storage | When | Notes |
+|---|---|---|
+| **Vercel Blob** (recommended) | `BLOB_READ_WRITE_TOKEN` is set (Vercel → **Storage → Create → Blob** → connect to this project) | Global CDN, fastest; free tier available. Each project should have its own Blob store |
+| The website's **database** | No Blob store, but the site has a database | Works with no extra setup; images are served from `/api/media/…` with long caching. Uses database space, so prefer Blob for image-heavy sites |
+| Local files (`.data/media/`) | Local development | – |
+| Disabled | Hosted without Blob or database | The admin shows how to enable uploads; pasting URLs still works |
+
+When several sites share one deployment, use `BLOB_READ_WRITE_TOKEN_<SITE_ID>`. With `ISOLATE_SITE_DATABASES=true`, a shared token is never used. Images can also still be committed to `public/sites/<id>/`.
 
 ## Creating a website for a new company
 

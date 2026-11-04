@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { clsx } from "clsx";
-import { Database, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, ShoppingBag, X, Download } from "lucide-react";
+import { Database, ExternalLink, Image as ImageIcon, Inbox, LayoutDashboard, LogOut, Menu, ShoppingBag, X, Download } from "lucide-react";
 
 export function AdminNav({ brand, siteId, storeKind, storeLocation, modules, showOrders }: { brand: string; siteId: string; storeKind: string; storeLocation?: string; modules: { key: string; label: string; group: string }[]; showOrders: boolean }) {
   const path = usePathname();
@@ -28,6 +28,7 @@ export function AdminNav({ brand, siteId, storeKind, storeLocation, modules, sho
           {item("/admin", "Dashboard", <LayoutDashboard className="size-4" />)}
           {item("/admin/enquiries", "Enquiries", <Inbox className="size-4" />)}
           {showOrders && item("/admin/orders", "Orders", <ShoppingBag className="size-4" />)}
+          {item("/admin/media", "Media library", <ImageIcon className="size-4" />)}
         </div>
         {groups.map((g) => (
           <div key={g}>

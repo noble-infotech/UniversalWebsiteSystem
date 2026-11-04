@@ -13,6 +13,8 @@ import { useId, useState } from "react";
 import { clsx } from "clsx";
 import { ChevronDown, ChevronUp, Copy, Plus, Trash2, X } from "lucide-react";
 import { fieldHelp } from "./field-help";
+import { ImageField } from "./ImageField";
+import { ImageListField } from "./ImageListField";
 
 export type JSONSchema = {
   type?: string | string[];
@@ -94,6 +96,14 @@ const humanize = (k: string) =>
 const LONG_TEXT = /^(description|body|about|history|answer|quote|excerpt|text|bio|mission|vision|summary|challenge|solution|message|shortDescription|subtitle)$/;
 const IMAGE_KEY = /(image|src|logo|cover|avatar|favicon|poster|ogImage|^primary$|^secondary$)/i;
 const isHex = (v: unknown) => typeof v === "string" && /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v);
+/** Fields that hold an image get the upload / library picker instead of a plain text box. */
+function isImageField(path: string, name: string, v: string) {
+  if (isHex(v) || /\.colors(\.|$)|videos|\.video$/.test(path) || name === "video") return false;
+  if (/^(image|src|logo|cover|avatar|favicon|poster|ogImage|aboutImage)$/.test(name)) return true;
+  if (/^(primary|secondary)$/.test(name)) return /\.logo\.(primary|secondary)$/.test(path);
+  if (!name && /\.(gallery|images)$/.test(path)) return true; // lists of image URLs
+  return looksLikeImage(name, v);
+}
 const looksLikeImage = (k: string, v: unknown) => typeof v === "string" && /^(https?:\/\/|\/)/.test(v) && (IMAGE_KEY.test(k) || /\.(png|jpe?g|webp|gif|svg|avif)(\?|$)/i.test(v) || v.includes("images.unsplash.com"));
 
 function itemLabel(v: Json, index: number): string {
@@ -157,6 +167,13 @@ function StringField({ name, path, value, onChange, onRemove, label }: NodeProps
   const id = useId();
   const v = typeof value === "string" ? value : value == null ? "" : String(value);
   const long = !isHex(v) && (LONG_TEXT.test(name) || v.length > 90 || v.includes("\n"));
+  if (isImageField(path, name, v))
+    return (
+      <div>
+        <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} path={path} />
+        <ImageField id={id} value={v} onChange={(x) => onChange(x)} />
+      </div>
+    );
   return (
     <div>
       <FieldLabel name={name} label={label} onRemove={onRemove} htmlFor={id} path={path} />
@@ -166,10 +183,6 @@ function StringField({ name, path, value, onChange, onRemove, label }: NodeProps
           <textarea id={id} className={clsx(inputCls, "min-h-24")} rows={Math.min(14, Math.max(3, Math.ceil(v.length / 90) + v.split("\n").length))} value={v} onChange={(e) => onChange(e.target.value)} />
         ) : (
           <input id={id} className={inputCls} value={v} onChange={(e) => onChange(e.target.value)} />
-        )}
-        {looksLikeImage(name, v) && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={v} alt="" className="h-9 w-14 shrink-0 rounded border border-neutral-200 bg-neutral-100 object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
         )}
       </div>
     </div>
@@ -321,6 +334,18 @@ function ArrayField({ name, path, value, onChange, ctx, depth, s, onRemove, labe
     setOpen(list.length);
   };
   const iconBtn = "grid size-7 place-items-center rounded text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-30";
+  // Lists of images (product images, galleries) get a thumbnail grid with multi-upload.
+  const imageList = /(^|\.)(images|gallery)$/.test(path) && (primitive ? typeOf(itemSchema) === "string" : !!itemSchema.properties?.src);
+  if (imageList) {
+    const extraKeys = primitive ? [] : Object.keys(itemSchema.properties!).filter((k) => !["src", "alt", "width", "height"].includes(k) && typeOf(resolve(itemSchema.properties![k], ctx)) === "string");
+    const grid = <ImageListField value={list as never} onChange={onChange as never} objectItems={!primitive} makeItem={() => makeDefault(itemSchema, ctx) as never} extraKeys={extraKeys} />;
+    if (depth === 0) return grid;
+    return (
+      <Collapsible title={label ?? humanize(name)} help={fieldHelp(path)} badge={String(list.length)} onRemove={onRemove} defaultOpen>
+        {grid}
+      </Collapsible>
+    );
+  }
 
   const body = primitive ? (
     <div className="space-y-2">
