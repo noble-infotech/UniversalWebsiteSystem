@@ -13,6 +13,7 @@
     "new-site": "tsx scripts/new-site.ts"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "clsx": "^2.1.1",
     "lucide-react": "^1.66.0",
     "next": "^16.4.4",
@@ -32,5 +33,8 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "zod": "$zod"
   }
 }

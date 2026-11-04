@@ -40,8 +40,9 @@ export function CatalogListing({ site, sp, category, basePath }: { site: SiteCon
   const pages = Math.max(1, Math.ceil(results.length / perPage));
   const page = Math.min(query.page, pages);
   const shown = results.slice((page - 1) * perPage, page * perPage);
-  const topCats = site.catalog.categories.filter((c) => !c.parent);
-  const subCats = category ? site.catalog.categories.filter((c) => c.parent === category.slug) : [];
+  const named = site.catalog.categories.filter((c) => c.slug.trim() && c.name.trim());
+  const topCats = named.filter((c) => !c.parent);
+  const subCats = category ? named.filter((c) => c.parent === category.slug) : [];
   const pageHref = (n: number) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(sp)) if (v != null && k !== "page") p.set(k, Array.isArray(v) ? v.join(",") : v);
@@ -54,7 +55,7 @@ export function CatalogListing({ site, sp, category, basePath }: { site: SiteCon
       <PageHeader
         site={site}
         compact
-        title={category?.name ?? site.commerce.shopTitle}
+        title={category?.name || site.commerce.shopTitle}
         subtitle={category?.description ?? site.commerce.shopDescription}
         crumbs={category ? [{ label: site.commerce.shopTitle, href: "/shop" }, ...(category.parent ? [{ label: site.catalog.categories.find((c) => c.slug === category.parent)?.name ?? category.parent, href: `/shop/category/${category.parent}` }] : []), { label: category.name, href: basePath }] : [{ label: site.commerce.shopTitle, href: "/shop" }]}
       />

@@ -25,9 +25,9 @@ export const company: SiteConfigInput["company"] = {
 };
 
 export const story: SiteConfigInput["story"] = {
-  about: "For three decades Apex Forge has turned raw steel, aluminium and specialty alloys into mission-critical components. From a single CNC lathe in 1994 to three plants and 600+ engineers today, we combine forging, precision machining and in-house metallurgy under one roof – so OEMs get tighter tolerances, shorter lead times and one accountable partner.",
+  about: "For three decades {brand} has turned raw steel, aluminium and specialty alloys into mission-critical components. From a single CNC lathe in 1994 to three plants and 600+ engineers today, we combine forging, precision machining and in-house metallurgy under one roof – so OEMs get tighter tolerances, shorter lead times and one accountable partner.",
   aboutImage: img("photo-1504917595217-d4dc5ebe6122"),
-  history: "Founded by mechanical engineer Rajesh Kulkarni with a single lathe and a commitment to zero-defect parts, Apex Forge grew alongside India’s automotive boom and now exports to 28 countries.",
+  history: "Founded by mechanical engineer Rajesh Kulkarni with a single lathe and a commitment to zero-defect parts, {brand} grew alongside India’s automotive boom and now exports to 28 countries.",
   vision: "To be the world’s most trusted precision-component partner, recognised for engineering integrity and sustainable manufacturing.",
   mission: "Deliver zero-defect components on time, every time – through disciplined processes, continuous innovation and people who take pride in their craft.",
   values: [
@@ -42,7 +42,7 @@ export const story: SiteConfigInput["story"] = {
     { name: "Markus Weber", role: "Head of European Operations", image: img("photo-1519085360753-af0119f7cbe7", 600), social: { linkedin: "https://linkedin.com" } },
     { name: "Priya Shah", role: "VP Quality & Metallurgy", image: img("photo-1580489944761-15a19d654956", 600), social: { linkedin: "https://linkedin.com" } },
   ],
-  founder: { name: "Rajesh Kulkarni", role: "Founder & Chairman", image: img("photo-1560250097-0b93528c311a", 800), quote: "A component is only as good as the discipline behind it. We built Apex Forge on that discipline.", bio: "Rajesh founded Apex Forge in 1994 after a decade in automotive tooling." },
+  founder: { name: "Rajesh Kulkarni", role: "Founder & Chairman", image: img("photo-1560250097-0b93528c311a", 800), quote: "A component is only as good as the discipline behind it. We built {brand} on that discipline.", bio: "Rajesh founded {brand} in 1994 after a decade in automotive tooling." },
   milestones: [
     { year: "1994", title: "Founded in Pune", description: "First CNC turning cell supplying local tier-2 auto suppliers." },
     { year: "2003", title: "ISO 9001 & first export", description: "Began supplying drivetrain parts to a German OEM." },

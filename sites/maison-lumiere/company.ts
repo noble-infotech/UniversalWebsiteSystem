@@ -21,9 +21,9 @@ export const company: SiteConfigInput["company"] = {
 };
 
 export const story: SiteConfigInput["story"] = {
-  about: "Maison Lumière began at a kitchen table with a single soy candle and a belief that the objects we live with should be made slowly, honestly and beautifully. Today we partner with 40+ independent makers to bring you pieces that feel personal – never mass-produced.",
+  about: "{brand} began at a kitchen table with a single soy candle and a belief that the objects we live with should be made slowly, honestly and beautifully. Today we partner with 40+ independent makers to bring you pieces that feel personal – never mass-produced.",
   aboutImage: img("photo-1513506003901-1e6a229e2d15"),
-  history: "Founded by designer Claire Moreau in 2016, Maison Lumière grew from a weekend market stall in Brooklyn into a beloved online destination shipping to 30 countries – while still pouring every candle by hand.",
+  history: "Founded by designer Claire Moreau in 2016, {brand} grew from a weekend market stall in Brooklyn into a beloved online destination shipping to 30 countries – while still pouring every candle by hand.",
   vision: "A home filled with fewer, better things – each with a story worth telling.",
   mission: "Champion independent makers and natural materials, and make considered living accessible to everyone.",
   values: [

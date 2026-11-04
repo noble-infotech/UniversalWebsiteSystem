@@ -9,5 +9,5 @@ export const footer: SiteConfigInput["footer"] = {
   ],
   legalLinks: [{ label: "Privacy", href: "/privacy-policy" }, { label: "Terms", href: "/terms" }],
   copyright: "© {year} {company}. Registered in England & Wales.",
-  newsletter: { enabled: true, title: "The Northstar Brief", text: "Monthly insights on strategy, data and AI for leaders." },
+  newsletter: { enabled: true, title: "The {brand} Brief", text: "Monthly insights on strategy, data and AI for leaders." },
 };

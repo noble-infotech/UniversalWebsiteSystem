@@ -17,7 +17,7 @@ export const homeSections = [
   section({ id: "clients", type: "clients", eyebrow: "Trusted by leaders at", layout: "marquee" }),
   section({ id: "services", type: "productsServices", source: "services", layout: "image", eyebrow: "What we do", title: "Capabilities built for impact", limit: 3, columns: 3, cta: { label: "All services", href: "/services" } }),
   section({ id: "stats", type: "stats", layout: "cards", eyebrow: "Impact", title: "Results our clients can bank", background: { variant: "gradient" } }),
-  section({ id: "why", type: "whyChooseUs", layout: "split", eyebrow: "Why Northstar", title: "Consultants who ship", media: { image: img("photo-1600880292203-757bb62b4baf", 1400) }, cta: { label: "Meet the team", href: "/about" } }),
+  section({ id: "why", type: "whyChooseUs", layout: "split", eyebrow: "Why {brand}", title: "Consultants who ship", media: { image: img("photo-1600880292203-757bb62b4baf", 1400) }, cta: { label: "Meet the team", href: "/about" } }),
   section({ id: "process", type: "process", layout: "steps", eyebrow: "How we work", title: "A proven path from insight to scale" }),
   section({ id: "work", type: "projects", layout: "featured", eyebrow: "Selected work", title: "Case studies", limit: 3, cta: { label: "All case studies", href: "/portfolio" } }),
   section({ id: "pricing", type: "pricing", source: "service:growth-strategy", eyebrow: "Engagement models", title: "Transparent ways to start", cta: { label: "Talk to a partner", href: "/contact" }, background: { variant: "muted" } }),

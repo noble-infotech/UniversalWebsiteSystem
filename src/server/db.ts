@@ -93,6 +93,16 @@ export function ensureSchema(siteId: string): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now()
     )`;
     await db`CREATE INDEX IF NOT EXISTS uws_orders_site ON uws_orders (site_id, created_at DESC)`;
+    await db`CREATE TABLE IF NOT EXISTS uws_media (
+      id text PRIMARY KEY,
+      site_id text NOT NULL,
+      filename text NOT NULL,
+      content_type text NOT NULL,
+      size integer NOT NULL,
+      data bytea NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`;
+    await db`CREATE INDEX IF NOT EXISTS uws_media_site ON uws_media (site_id, created_at DESC)`;
   })().catch((e) => {
     p.schema = undefined;
     throw e;
