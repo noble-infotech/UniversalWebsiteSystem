@@ -10,13 +10,15 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "validate:sites": "tsx scripts/validate-sites.ts",
-    "new-site": "tsx scripts/new-site.ts"
+    "new-site": "tsx scripts/new-site.ts",
+    "emulator": "firebase emulators:start --only firestore --project demo-uws",
+    "test:firestore": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 vitest run tests/firestore.integration.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "firebase-admin": "^14.5.0",
     "lucide-react": "^1.66.0",
     "next": "^16.4.4",
-    "postgres": "^4.0.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
@@ -28,9 +30,13 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "firebase-tools": "^15.35.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "zod": "$zod"
   }
 }

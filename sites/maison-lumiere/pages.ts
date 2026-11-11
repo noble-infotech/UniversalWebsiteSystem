@@ -31,5 +31,5 @@ export const pages: SiteConfigInput["pages"] = [
   page({ slug: "contact", title: "Contact", header: { show: true, breadcrumbs: true, subtitle: "We’d love to hear from you." }, sections: [section({ id: "contact", type: "contact", layout: "split" })] }),
   page({ slug: "careers", title: "Careers", sections: [section({ id: "jobs", type: "careers" })] }),
   page({ slug: "gift-guide", title: "The Gift Guide", visibility: "hidden", header: { show: true, breadcrumbs: true, subtitle: "Hidden campaign landing page – reachable by URL, excluded from sitemap." }, sections: [section({ id: "offers", type: "offers" }), section({ id: "gifts", type: "productsServices", source: "category:gifts", title: "Gift-ready" })] }),
-  ...legalPages({ company: "Maison Lumière Living LLC", email: "hello@maisonlumiere.example", country: "the State of New York, USA", updated: "15 September 2026", shop: true, returnsDays: 30 }),
+  ...legalPages({ company: "{company}", email: "hello@maisonlumiere.example", country: "the State of New York, USA", updated: "15 September 2026", shop: true, returnsDays: 30 }),
 ];

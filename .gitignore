@@ -6,3 +6,8 @@ next-env.d.ts
 .env*.local
 .vercel
 .data
+# Firebase emulator / CLI
+firebase-debug.log
+firestore-debug.log
+.firebase/
+*-service-account*.json

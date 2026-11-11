@@ -117,3 +117,19 @@ Text fields rendered with `RichText` support:
 - `## Heading` and `### Subheading`
 - `- list item`
 - `**bold**`
+
+## Name placeholders
+
+Any text outside the company profile can use placeholders that are filled in from **Company profile**. Renaming the company in one place then updates every page, title and policy.
+
+| Placeholder | Becomes |
+|---|---|
+| `{brand}` | Brand name |
+| `{name}` | Company name |
+| `{company}` | Legal name (or company name) |
+| `{tagline}` | Tagline |
+| `{phone}`, `{email}` | First phone number / email address |
+| `{year}` | Current year |
+| `{years}` | Years since the company was established |
+
+Example: `seo.defaultTitle: "{brand} – Handmade Candles"`. The sample sites already use placeholders. Logo **images** are pictures, so the name inside them can't change: upload a new logo, or remove the logo images to show the brand name as a text logo.

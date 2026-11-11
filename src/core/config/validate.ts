@@ -32,6 +32,29 @@ export function validateSite(raw: unknown): { config?: SiteConfig; issues: Issue
   dupes(s.services.items.map((x) => x.slug), "services.items");
   dupes(s.content.posts.map((x) => x.slug), "content.posts");
 
+  // Names, titles and URL slugs must be filled in and URL-safe (prevents blank menu items / chips and broken links).
+  const SLUG = /^[a-z0-9]+(?:[-/][a-z0-9]+)*$/;
+  const need = (path: string, what: string, v: string | undefined) => {
+    if (!v || !v.trim()) err(path, `${what} is required`);
+  };
+  const slugOk = (path: string, v: string) => {
+    if (!v.trim()) err(path, "URL slug is required");
+    else if (!SLUG.test(v)) err(path, `URL slug "${v}" may only contain lowercase letters, numbers and dashes (e.g. "linen-throw")`);
+  };
+  s.catalog.categories.forEach((c, i) => { slugOk(`catalog.categories[${i}].slug`, c.slug); need(`catalog.categories[${i}].name`, "Category name", c.name); });
+  s.catalog.products.forEach((p, i) => { slugOk(`catalog.products[${i}].slug`, p.slug); need(`catalog.products[${i}].name`, "Product name", p.name); need(`catalog.products[${i}].sku`, "SKU", p.sku); });
+  s.services.categories.forEach((c, i) => { slugOk(`services.categories[${i}].slug`, c.slug); need(`services.categories[${i}].name`, "Service category name", c.name); });
+  s.services.items.forEach((x, i) => { slugOk(`services.items[${i}].slug`, x.slug); need(`services.items[${i}].name`, "Service name", x.name); });
+  s.content.posts.forEach((x, i) => { slugOk(`content.posts[${i}].slug`, x.slug); need(`content.posts[${i}].title`, "Post title", x.title); });
+  s.content.projects.forEach((x, i) => { slugOk(`content.projects[${i}].slug`, x.slug); need(`content.projects[${i}].title`, "Project title", x.title); });
+  s.pages.forEach((p, i) => {
+    if (p.slug !== "") slugOk(`pages[${i}].slug`, p.slug);
+    need(`pages[${i}].title`, "Page title", p.title);
+    p.sections.forEach((x, k) => need(`pages[${i}].sections[${k}].id`, "Section ID", x.id));
+  });
+  const labels = (items: NavItem[], path: string): void => items.forEach((i, k) => { need(`${path}[${k}].label`, "Menu label", i.label); if (i.children) labels(i.children, `${path}[${k}].children`); });
+  labels(s.navigation.menu, "navigation.menu");
+
   if (!s.pages.some((p) => p.slug === "")) err("pages", 'No homepage (page with slug "") defined');
   for (const p of s.pages) {
     dupes(p.sections.map((x) => x.id), `pages[${p.slug || "home"}].sections(id)`);

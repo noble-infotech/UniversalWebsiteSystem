@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowRight, Box, FileText, Inbox, Layers, ShoppingBag, W
 import { getSite } from "@/core/config/loader";
 import { isEnabled } from "@/core/config/features";
 import { getStore } from "@/server/store";
-import { databaseEnvHint } from "@/server/db";
+import { firebaseEnvHint } from "@/server/firebase";
 import { ADMIN_MODULES } from "@/server/admin-modules";
 import { formatMoney, formatDate } from "@/core/commerce/format";
 
@@ -31,7 +31,7 @@ export default async function AdminDashboard() {
       {!store.writable && (
         <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="size-5 shrink-0" />
-          <div><strong>Connect this website’s own database to save changes, enquiries and orders.</strong> In Vercel: Storage → Create Database → Neon (Postgres) → connect it to this project (sets <code>{databaseEnvHint(site.id)}</code>), then redeploy. You can browse everything now, but saving is disabled.</div>
+          <div><strong>Connect Firebase to save changes, enquiries, orders and images.</strong> Create a Firebase project with Firestore, download a service-account key, and add it in Vercel as <code>{firebaseEnvHint(site.id)}</code> (step-by-step in docs/ADMIN.md), then redeploy. You can browse everything now, but saving is disabled.</div>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

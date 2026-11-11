@@ -1,24 +1,24 @@
 import "server-only";
 /**
- * CONTENT STORE – persistence for admin edits, enquiries and orders.
+ * CONTENT STORE – persistence for admin edits, enquiries and orders (no SQL database).
  *
- *   Postgres  (DATABASE_URL / POSTGRES_URL set)  → production, works on Vercel
- *   Local JSON files in ./.data                  → local development, zero setup
- *   Read-only                                    → hosted without a database (admin can view, not save)
+ *   Firebase Firestore (see firebase.ts)  → production, works on Vercel
+ *   Local JSON files in ./.data           → local development, zero setup
+ *   Read-only                             → hosted without Firebase (admin can view, not save)
  */
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { SiteConfigInput } from "@/core/config/schema";
 import type { Order, OrderStatus } from "@/core/commerce/orders";
-import { databaseLabel, databaseUrlFor, ensureSchema, sqlFor } from "./db";
+import { chunk, firebaseLabel, firestoreFor, hasFirebase } from "./firebase";
 
 export type Overrides = Partial<Omit<SiteConfigInput, "id">>;
 export type Enquiry = { id: string; siteId: string; form: string; data: Record<string, unknown>; page?: string; status: "new" | "read" | "archived"; createdAt: string };
-export type StoreKind = "postgres" | "file" | "readonly";
+export type StoreKind = "firestore" | "file" | "readonly";
 
 /**
- * A store is always bound to ONE site: it reads and writes only that site's database
- * (or that site's local files). Site ids are still stored in every row as a second guard.
+ * A store is always bound to ONE site: it reads and writes only that site's Firebase project
+ * (or that site's local files), under uws_sites/{siteId}. Records also carry the site id.
  */
 export interface ContentStore {
   kind: StoreKind;
@@ -36,75 +36,110 @@ export interface ContentStore {
   setOrderStatus(siteId: string, number: string, status: OrderStatus): Promise<Order | undefined>;
 }
 
-/* ------------------------------ Postgres ------------------------------ */
-function pgStore(boundSite: string): ContentStore {
-  const sql = () => sqlFor(boundSite);
-  const ready = () => ensureSchema(boundSite);
+/* ------------------------------ Firestore ------------------------------ */
+const ORDER_NO = /^[A-Za-z0-9-]{3,40}$/;
+const DOC_ID = /^[A-Za-z0-9_-]{1,100}$/;
+
+/**
+ * Layout (per site, in that site's Firebase project):
+ *   uws_sites/{site}                         { updatedAt, updatedBy }
+ *   uws_sites/{site}/modules/{module}        { parts, updatedAt }  + parts/{n} { text }   (admin edits, JSON)
+ *   uws_sites/{site}/enquiries/{id}          enquiry fields (readable in the Firebase console)
+ *   uws_sites/{site}/orders/{number}         order fields + emailLower
+ * Module JSON is split into parts so even large catalogues fit Firestore's 1 MiB document limit.
+ */
+function firestoreStore(boundSite: string): ContentStore {
+  const db = () => firestoreFor(boundSite);
+  const site = () => db().collection("uws_sites").doc(boundSite);
   const guard = (siteId: string) => {
     if (siteId !== boundSite) throw new Error(`Store for "${boundSite}" cannot access "${siteId}"`);
   };
   return {
-  kind: "postgres" as const,
-  writable: true,
-  location: databaseLabel(boundSite),
-  async getOverrides(siteId) {
-    guard(siteId);
-    await ready();
-    const rows = await sql()`SELECT data, updated_at, updated_by FROM uws_site_overrides WHERE site_id = ${siteId}`;
-    if (!rows.length) return { data: {} };
-    return { data: rows[0].data as Overrides, updatedAt: new Date(rows[0].updated_at).toISOString(), updatedBy: rows[0].updated_by ?? undefined };
-  },
-  async saveOverrides(siteId, data, by) {
-    guard(siteId);
-    await ready();
-    await sql()`INSERT INTO uws_site_overrides (site_id, data, updated_at, updated_by)
-      VALUES (${siteId}, ${sql().json(data as never)}, now(), ${by})
-      ON CONFLICT (site_id) DO UPDATE SET data = EXCLUDED.data, updated_at = now(), updated_by = EXCLUDED.updated_by`;
-  },
-  async addEnquiry(e) {
-    guard(e.siteId);
-    await ready();
-    await sql()`INSERT INTO uws_enquiries (id, site_id, form, data, page, status, created_at) VALUES (${e.id}, ${e.siteId}, ${e.form}, ${sql().json(e.data as never)}, ${e.page ?? null}, ${e.status}, ${e.createdAt})`;
-  },
-  async listEnquiries(siteId, limit = 200) {
-    guard(siteId);
-    await ready();
-    const rows = await sql()`SELECT * FROM uws_enquiries WHERE site_id = ${siteId} ORDER BY created_at DESC LIMIT ${limit}`;
-    return rows.map((r) => ({ id: r.id, siteId: r.site_id, form: r.form, data: r.data, page: r.page ?? undefined, status: r.status, createdAt: new Date(r.created_at).toISOString() }));
-  },
-  async setEnquiryStatus(siteId, id, status) {
-    guard(siteId);
-    await ready();
-    await sql()`UPDATE uws_enquiries SET status = ${status} WHERE site_id = ${siteId} AND id = ${id}`;
-  },
-  async saveOrder(o) {
-    guard(o.siteId);
-    await ready();
-    await sql()`INSERT INTO uws_orders (number, site_id, email, status, total, data, created_at)
-      VALUES (${o.number}, ${o.siteId}, ${o.email.toLowerCase()}, ${o.status}, ${o.totals.total}, ${sql().json(o as never)}, ${o.createdAt})
-      ON CONFLICT (number) DO UPDATE SET status = EXCLUDED.status, data = EXCLUDED.data`;
-  },
-  async findOrder(siteId, number, email) {
-    guard(siteId);
-    await ready();
-    const rows = await sql()`SELECT data FROM uws_orders WHERE site_id = ${siteId} AND number = ${number} AND email = ${email.toLowerCase()}`;
-    return rows[0]?.data as Order | undefined;
-  },
-  async listOrders(siteId, limit = 200) {
-    guard(siteId);
-    await ready();
-    const rows = await sql()`SELECT data FROM uws_orders WHERE site_id = ${siteId} ORDER BY created_at DESC LIMIT ${limit}`;
-    return rows.map((r) => r.data as Order);
-  },
-  async setOrderStatus(siteId, number, status) {
-    guard(siteId);
-    await ready();
-    const rows = await sql()`SELECT data FROM uws_orders WHERE site_id = ${siteId} AND number = ${number}`;
-    if (!rows.length) return undefined;
-    const order = { ...(rows[0].data as Order), status };
-    await sql()`UPDATE uws_orders SET status = ${status}, data = ${sql().json(order as never)} WHERE site_id = ${siteId} AND number = ${number}`;
-    return order;
-  },
+    kind: "firestore",
+    writable: true,
+    location: firebaseLabel(boundSite),
+    async getOverrides(siteId) {
+      guard(siteId);
+      const [meta, mods] = await Promise.all([site().get(), site().collection("modules").get()]);
+      const data: Record<string, unknown> = {};
+      await Promise.all(
+        mods.docs.map(async (m) => {
+          const parts = await m.ref.collection("parts").orderBy("n").get();
+          data[m.id] = JSON.parse(parts.docs.map((d) => d.get("text") as string).join(""));
+        }),
+      );
+      return { data: data as Overrides, updatedAt: meta.get("updatedAt") ?? undefined, updatedBy: meta.get("updatedBy") ?? undefined };
+    },
+    async saveOverrides(siteId, data, by) {
+      guard(siteId);
+      const now = new Date().toISOString();
+      const existing = await site().collection("modules").get();
+      const batch = db().batch();
+      const keep = new Set(Object.keys(data));
+      for (const m of existing.docs) {
+        // remove modules that were reset, and stale parts of modules that shrank
+        const parts = await m.ref.collection("parts").get();
+        const newParts = keep.has(m.id) ? chunk(Buffer.from(JSON.stringify((data as Record<string, unknown>)[m.id]), "utf8")).length : 0;
+        for (const p of parts.docs) if (Number(p.get("n")) >= newParts) batch.delete(p.ref);
+        if (!keep.has(m.id)) batch.delete(m.ref);
+      }
+      for (const [mod, value] of Object.entries(data)) {
+        if (!DOC_ID.test(mod)) continue;
+        const ref = site().collection("modules").doc(mod);
+        const pieces = chunk(Buffer.from(JSON.stringify(value), "utf8"));
+        pieces.forEach((b, n) => batch.set(ref.collection("parts").doc(String(n).padStart(4, "0")), { n, text: b.toString("utf8") }));
+        batch.set(ref, { parts: pieces.length, updatedAt: now });
+      }
+      batch.set(site(), { updatedAt: now, updatedBy: by }, { merge: true });
+      await batch.commit();
+    },
+    async addEnquiry(e) {
+      guard(e.siteId);
+      if (!DOC_ID.test(e.id)) throw new Error("Invalid enquiry id");
+      await site().collection("enquiries").doc(e.id).set(e);
+    },
+    async listEnquiries(siteId, limit = 200) {
+      guard(siteId);
+      const q = await site().collection("enquiries").orderBy("createdAt", "desc").limit(limit).get();
+      return q.docs.map((d) => d.data() as Enquiry);
+    },
+    async setEnquiryStatus(siteId, id, status) {
+      guard(siteId);
+      if (!DOC_ID.test(id)) return;
+      await site().collection("enquiries").doc(id).set({ status }, { merge: true });
+    },
+    async saveOrder(o) {
+      guard(o.siteId);
+      if (!ORDER_NO.test(o.number)) throw new Error("Invalid order number");
+      await site().collection("orders").doc(o.number).set({ ...o, emailLower: o.email.toLowerCase() });
+    },
+    async findOrder(siteId, number, email) {
+      guard(siteId);
+      if (!ORDER_NO.test(number)) return undefined;
+      const d = await site().collection("orders").doc(number).get();
+      const o = d.exists ? (d.data() as Order & { emailLower?: string }) : undefined;
+      if (!o || o.siteId !== siteId || o.email.toLowerCase() !== email.toLowerCase()) return undefined;
+      const { emailLower: _e, ...order } = o;
+      return order;
+    },
+    async listOrders(siteId, limit = 200) {
+      guard(siteId);
+      const q = await site().collection("orders").orderBy("createdAt", "desc").limit(limit).get();
+      return q.docs.map((d) => {
+        const { emailLower: _e, ...o } = d.data() as Order & { emailLower?: string };
+        return o;
+      });
+    },
+    async setOrderStatus(siteId, number, status) {
+      guard(siteId);
+      if (!ORDER_NO.test(number)) return undefined;
+      const ref = site().collection("orders").doc(number);
+      const d = await ref.get();
+      if (!d.exists) return undefined;
+      await ref.update({ status });
+      const { emailLower: _e, ...o } = d.data() as Order & { emailLower?: string };
+      return { ...o, status };
+    },
   };
 }
 
@@ -168,7 +203,7 @@ const readonly: ContentStore = {
   writable: false,
   getOverrides: async () => ({ data: {} }),
   saveOverrides: async () => {
-    throw new Error("No database configured. Add DATABASE_URL to enable saving.");
+    throw new Error("No storage configured. Connect Firebase (see docs/ADMIN.md) to enable saving.");
   },
   addEnquiry: async () => {},
   listEnquiries: async () => [],
@@ -179,9 +214,9 @@ const readonly: ContentStore = {
   setOrderStatus: async () => undefined,
 };
 
-/** The store for one site: its own database if configured, else local files (dev) or read-only. */
+/** The store for one site: its own Firebase project if configured, else local files (dev) or read-only. */
 export function getStore(siteId: string): ContentStore {
-  if (databaseUrlFor(siteId)) return pgStore(siteId);
+  if (hasFirebase(siteId)) return firestoreStore(siteId);
   // Serverless hosts (Vercel) have a read-only/ephemeral filesystem – never pretend to persist there.
   if (process.env.VERCEL || process.env.UWS_READONLY === "true") return readonly;
   return file;

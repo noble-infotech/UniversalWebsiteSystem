@@ -3,7 +3,7 @@ import { img, page, section, legalPages } from "../_shared/helpers";
 import { homeSections } from "./home";
 
 export const pages: SiteConfigInput["pages"] = [
-  page({ slug: "", title: "Home", sections: homeSections, seo: { title: "Strategy, Data & AI Consulting", description: "Northstar unites strategy, data science and engineering to deliver measurable outcomes." } }),
+  page({ slug: "", title: "Home", sections: homeSections, seo: { title: "Strategy, Data & AI Consulting", description: "{brand} unites strategy, data science and engineering to deliver measurable outcomes." } }),
   page({
     slug: "about",
     title: "About",
@@ -26,5 +26,5 @@ export const pages: SiteConfigInput["pages"] = [
   page({ slug: "faq", title: "FAQ", sections: [section({ id: "faq", type: "faq" })] }),
   page({ slug: "contact", title: "Contact", header: { show: true, breadcrumbs: true, subtitle: "Tell us about your goals – a partner will respond within one business day." }, sections: [section({ id: "contact", type: "contact", layout: "split", settings: { form: "enquiry", formTitle: "Start a conversation" } })] }),
   page({ slug: "request-quote", title: "Request a proposal", sections: [section({ id: "q", type: "quoteForm", title: "Request a proposal", settings: { benefits: ["Partner-led response within 1 business day", "Scoped proposal within a week", "Outcome-based pricing available"] } })] }),
-  ...legalPages({ company: "Northstar Advisory Group Ltd.", email: "privacy@northstar.example", country: "England and Wales", updated: "1 August 2026", shop: false }),
+  ...legalPages({ company: "{company}", email: "privacy@northstar.example", country: "England and Wales", updated: "1 August 2026", shop: false }),
 ];

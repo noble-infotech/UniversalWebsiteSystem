@@ -45,38 +45,38 @@ See `.env.example`.
 | `SITE_URL` | Public origin for canonical URLs, sitemap and Open Graph tags |
 | `FORMS_WEBHOOK_URL` | Deliver form submissions to a webhook (Zapier, Make, n8n, CRM) |
 | `STRIPE_SECRET_KEY` | Enables the Stripe Checkout adapter when a site uses `payment.provider: "stripe"` |
-| `DATABASE_URL` / `POSTGRES_URL` | **This site's own** Postgres database for admin edits, enquiries and orders (one database per site) |
-| `DATABASE_URL_<SITE_ID>` | Per-site database when several sites share one deployment |
-| `ISOLATE_SITE_DATABASES` | `true` = a site never falls back to the shared `DATABASE_URL` |
+| `FIREBASE_SERVICE_ACCOUNT` | **This site's own** Firebase project (service-account JSON): Firestore stores admin edits, enquiries, orders and images. No SQL database |
+| `FIREBASE_SERVICE_ACCOUNT_<SITE_ID>` | Per-site Firebase project when several sites share one deployment |
+| `ISOLATE_SITE_STORAGE` | `true` = a site never falls back to the shared Firebase credentials |
 | `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_<SITE_ID>`) | Admin login password |
 | `ADMIN_SECRET` | Key for signing admin sessions |
 | `NEXT_IMAGE_UNOPTIMIZED` | `true` where the server can't reach remote image hosts |
 
 ## Admin dashboard
 
-Each website has an admin at **`/admin`** for editing company details, brand colours and fonts, pages and homepage sections, menus, products, services, content, shop settings and SEO. It also lists **enquiries** and **orders**. Changes are validated and go live immediately. Setup is the site's own free Postgres database (each site has a separate one) plus an `ADMIN_PASSWORD`; see [docs/ADMIN.md](docs/ADMIN.md). Locally it works with zero setup: open http://localhost:3000/admin and use the password `admin`.
+Each website has an admin at **`/admin`** with **image upload and a media library**, for editing company details, brand colours and fonts, pages and homepage sections, menus, products, services, content, shop settings and SEO. It also lists **enquiries** and **orders**. Changes are validated and go live immediately. Setup is the site's own free Firebase project (Firestore, one per site) plus an `ADMIN_PASSWORD`; see [docs/ADMIN.md](docs/ADMIN.md). Locally it works with zero setup: open http://localhost:3000/admin and use the password `admin`.
 
 ## Documentation
 
-- [docs/ADMIN.md](docs/ADMIN.md): **admin dashboard**, its setup on Vercel (database and password), and how editing works
+- [docs/ADMIN.md](docs/ADMIN.md): **admin dashboard**, its setup on Vercel (Firebase and password), and how editing works
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): technology stack, architecture, folder structure, request flow
 - [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md): **onboard a new company** (branding, theme, homepage, navigation, footer, features)
 - [docs/CONTENT.md](docs/CONTENT.md): add **products, services, pages**, blog posts, case studies and more
 - [docs/SECTIONS.md](docs/SECTIONS.md): reference for all 32 section types and their layouts and settings
-- [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md): backend, database, payment, shipping, auth, analytics, and **what is production-ready vs. demo**
+- [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md): backend, storage (Firestore), payment, shipping, auth, analytics, and **what is production-ready vs. demo**
 
 ## Honest status: what works vs. what needs a backend
 
 **Works today, end to end:** every page, all 32 configurable sections, theming, navigation, search, product filtering and sorting, product pages with variants, customisation, gallery and zoom, wishlist, cart, coupons (validated on the server), shipping and tax calculation, checkout with validation, **server-side re-pricing of orders** (client prices are never trusted), order confirmation, form validation and submission (server-validated, rate-limited, honeypot), webhook delivery of forms, SEO metadata, JSON-LD, sitemap, robots.txt, and analytics/pixel/live-chat loaders.
 
-**With a database connected** (see docs/ADMIN.md), the following are stored and managed in the admin:
+**With Firebase connected** (see docs/ADMIN.md), the following are stored and managed in the admin:
 - orders, with real status-based tracking
 - enquiries
 - all website edits
 
 **Still demo-grade (clearly labelled in the UI), needs work before launch:**
 
-- **Without a database:** orders are kept in memory and tracking stages are simulated from the order date.
+- **Without Firebase:** orders are kept in memory and tracking stages are simulated from the order date.
 - **Customer accounts:** these are stored in the browser's localStorage.
 - **Review submission.**
 - **Live payment:** Stripe Checkout is implemented but untested here. Razorpay and PayPal are interface stubs.

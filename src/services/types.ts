@@ -8,7 +8,7 @@
  *  Interface          Default adapter (works today)        Production replacement
  *  ─────────────────  ───────────────────────────────────  ─────────────────────────────
  *  CatalogService     ConfigCatalog (reads site config)     Headless CMS / PIM / DB
- *  OrderRepository    MemoryOrderRepository (NOT durable)   Postgres / Shopify / Medusa
+ *  OrderRepository    Firestore (built in) / memory demo     Shopify / Medusa / custom API
  *  PaymentProvider    Manual (COD / bank transfer)          Stripe (adapter included), Razorpay, PayPal
  *  ShippingProvider   FlatRate (config rules)               Shiprocket, EasyPost, Shippo
  *  InventoryService   ConfigInventory (config stock)        ERP / WMS API
