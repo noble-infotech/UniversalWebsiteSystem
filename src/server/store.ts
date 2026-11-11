@@ -1,4 +1,5 @@
 import "server-only";
+import { isEphemeralHost } from "./host";
 /**
  * CONTENT STORE – persistence for admin edits, enquiries and orders (no SQL database).
  *
@@ -11,6 +12,7 @@ import path from "node:path";
 import type { SiteConfigInput } from "@/core/config/schema";
 import type { Order, OrderStatus } from "@/core/commerce/orders";
 import { chunk, firebaseLabel, firestoreFor, hasFirebase } from "./firebase";
+import type { Write } from "./firestore-rest";
 
 export type Overrides = Partial<Omit<SiteConfigInput, "id">>;
 export type Enquiry = { id: string; siteId: string; form: string; data: Record<string, unknown>; page?: string; status: "new" | "read" | "archived"; createdAt: string };
@@ -50,9 +52,13 @@ const DOC_ID = /^[A-Za-z0-9_-]{1,100}$/;
  */
 function firestoreStore(boundSite: string): ContentStore {
   const db = () => firestoreFor(boundSite);
-  const site = () => db().collection("uws_sites").doc(boundSite);
+  const root = `uws_sites/${boundSite}`;
   const guard = (siteId: string) => {
     if (siteId !== boundSite) throw new Error(`Store for "${boundSite}" cannot access "${siteId}"`);
+  };
+  const strip = <T,>(o: Record<string, unknown>) => {
+    const { emailLower: _e, ...rest } = o;
+    return rest as T;
   };
   return {
     kind: "firestore",
@@ -60,85 +66,72 @@ function firestoreStore(boundSite: string): ContentStore {
     location: firebaseLabel(boundSite),
     async getOverrides(siteId) {
       guard(siteId);
-      const [meta, mods] = await Promise.all([site().get(), site().collection("modules").get()]);
+      const [meta, mods] = await Promise.all([db().get(root), db().list(`${root}/modules`)]);
       const data: Record<string, unknown> = {};
       await Promise.all(
-        mods.docs.map(async (m) => {
-          const parts = await m.ref.collection("parts").orderBy("n").get();
-          data[m.id] = JSON.parse(parts.docs.map((d) => d.get("text") as string).join(""));
+        mods.map(async (m) => {
+          const parts = (await db().list(`${root}/modules/${m.id}/parts`)).sort((x, y) => Number(x.data.n) - Number(y.data.n));
+          data[m.id] = JSON.parse(parts.map((p) => String(p.data.text ?? "")).join(""));
         }),
       );
-      return { data: data as Overrides, updatedAt: meta.get("updatedAt") ?? undefined, updatedBy: meta.get("updatedBy") ?? undefined };
+      return { data: data as Overrides, updatedAt: (meta?.updatedAt as string) ?? undefined, updatedBy: (meta?.updatedBy as string) ?? undefined };
     },
     async saveOverrides(siteId, data, by) {
       guard(siteId);
       const now = new Date().toISOString();
-      const existing = await site().collection("modules").get();
-      const batch = db().batch();
-      const keep = new Set(Object.keys(data));
-      for (const m of existing.docs) {
-        // remove modules that were reset, and stale parts of modules that shrank
-        const parts = await m.ref.collection("parts").get();
-        const newParts = keep.has(m.id) ? chunk(Buffer.from(JSON.stringify((data as Record<string, unknown>)[m.id]), "utf8")).length : 0;
-        for (const p of parts.docs) if (Number(p.get("n")) >= newParts) batch.delete(p.ref);
-        if (!keep.has(m.id)) batch.delete(m.ref);
+      const writes: Write[] = [];
+      const keep = new Set(Object.keys(data).filter((k) => DOC_ID.test(k)));
+      // remove modules that were reset, and stale parts of modules that shrank
+      for (const m of await db().list(`${root}/modules`)) {
+        const newParts = keep.has(m.id) ? chunk(new TextEncoder().encode(JSON.stringify((data as Record<string, unknown>)[m.id]))).length : 0;
+        for (const p of await db().list(`${root}/modules/${m.id}/parts`)) if (Number(p.data.n) >= newParts) writes.push({ op: "delete", path: `${root}/modules/${m.id}/parts/${p.id}` });
+        if (!keep.has(m.id)) writes.push({ op: "delete", path: `${root}/modules/${m.id}` });
       }
-      for (const [mod, value] of Object.entries(data)) {
-        if (!DOC_ID.test(mod)) continue;
-        const ref = site().collection("modules").doc(mod);
-        const pieces = chunk(Buffer.from(JSON.stringify(value), "utf8"));
-        pieces.forEach((b, n) => batch.set(ref.collection("parts").doc(String(n).padStart(4, "0")), { n, text: b.toString("utf8") }));
-        batch.set(ref, { parts: pieces.length, updatedAt: now });
+      for (const mod of keep) {
+        const pieces = chunk(new TextEncoder().encode(JSON.stringify((data as Record<string, unknown>)[mod])));
+        pieces.forEach((b, n) => writes.push({ op: "set", path: `${root}/modules/${mod}/parts/${String(n).padStart(4, "0")}`, data: { n, text: new TextDecoder().decode(b) } }));
+        writes.push({ op: "set", path: `${root}/modules/${mod}`, data: { parts: pieces.length, updatedAt: now } });
       }
-      batch.set(site(), { updatedAt: now, updatedBy: by }, { merge: true });
-      await batch.commit();
+      writes.push({ op: "set", path: root, data: { updatedAt: now, updatedBy: by }, merge: true });
+      await db().commit(writes);
     },
     async addEnquiry(e) {
       guard(e.siteId);
       if (!DOC_ID.test(e.id)) throw new Error("Invalid enquiry id");
-      await site().collection("enquiries").doc(e.id).set(e);
+      await db().set(`${root}/enquiries/${e.id}`, e);
     },
     async listEnquiries(siteId, limit = 200) {
       guard(siteId);
-      const q = await site().collection("enquiries").orderBy("createdAt", "desc").limit(limit).get();
-      return q.docs.map((d) => d.data() as Enquiry);
+      return (await db().query(`${root}/enquiries`, "createdAt", { limit })).map((d) => d.data as Enquiry);
     },
     async setEnquiryStatus(siteId, id, status) {
       guard(siteId);
       if (!DOC_ID.test(id)) return;
-      await site().collection("enquiries").doc(id).set({ status }, { merge: true });
+      if (await db().get(`${root}/enquiries/${id}`)) await db().set(`${root}/enquiries/${id}`, { status }, true);
     },
     async saveOrder(o) {
       guard(o.siteId);
       if (!ORDER_NO.test(o.number)) throw new Error("Invalid order number");
-      await site().collection("orders").doc(o.number).set({ ...o, emailLower: o.email.toLowerCase() });
+      await db().set(`${root}/orders/${o.number}`, { ...o, emailLower: o.email.toLowerCase() });
     },
     async findOrder(siteId, number, email) {
       guard(siteId);
       if (!ORDER_NO.test(number)) return undefined;
-      const d = await site().collection("orders").doc(number).get();
-      const o = d.exists ? (d.data() as Order & { emailLower?: string }) : undefined;
-      if (!o || o.siteId !== siteId || o.email.toLowerCase() !== email.toLowerCase()) return undefined;
-      const { emailLower: _e, ...order } = o;
-      return order;
+      const d = await db().get(`${root}/orders/${number}`);
+      const o = d ? strip<Order>(d) : undefined;
+      return o && o.siteId === siteId && o.email.toLowerCase() === email.toLowerCase() ? o : undefined;
     },
     async listOrders(siteId, limit = 200) {
       guard(siteId);
-      const q = await site().collection("orders").orderBy("createdAt", "desc").limit(limit).get();
-      return q.docs.map((d) => {
-        const { emailLower: _e, ...o } = d.data() as Order & { emailLower?: string };
-        return o;
-      });
+      return (await db().query(`${root}/orders`, "createdAt", { limit })).map((d) => strip<Order>(d.data));
     },
     async setOrderStatus(siteId, number, status) {
       guard(siteId);
       if (!ORDER_NO.test(number)) return undefined;
-      const ref = site().collection("orders").doc(number);
-      const d = await ref.get();
-      if (!d.exists) return undefined;
-      await ref.update({ status });
-      const { emailLower: _e, ...o } = d.data() as Order & { emailLower?: string };
-      return { ...o, status };
+      const d = await db().get(`${root}/orders/${number}`);
+      if (!d) return undefined;
+      await db().set(`${root}/orders/${number}`, { status }, true);
+      return { ...strip<Order>(d), status };
     },
   };
 }
@@ -218,6 +211,6 @@ const readonly: ContentStore = {
 export function getStore(siteId: string): ContentStore {
   if (hasFirebase(siteId)) return firestoreStore(siteId);
   // Serverless hosts (Vercel) have a read-only/ephemeral filesystem – never pretend to persist there.
-  if (process.env.VERCEL || process.env.UWS_READONLY === "true") return readonly;
+  if (isEphemeralHost()) return readonly;
   return file;
 }

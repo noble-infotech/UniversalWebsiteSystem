@@ -38,9 +38,20 @@ reg = reg.replace(/(import [^\n]+ from "\.\/[^"]+";\n)(?!import)/, `$1import ${c
 reg = reg.replace(/(export const siteRegistry[^{]+\{\n)/, `$1  [${camel}.id]: ${camel},\n`);
 fs.writeFileSync(registry, reg);
 
+// Register a Cloudflare Worker environment for the new site (see docs/CLOUDFLARE.md).
+const wranglerFile = path.join(root, "wrangler.jsonc");
+if (fs.existsSync(wranglerFile)) {
+  const w = fs.readFileSync(wranglerFile, "utf8");
+  if (!w.includes(`"${id}": {`)) {
+    const entry = `\n    "${id}": {\n      "name": "${id}",\n      "vars": { "SITE_ID": "${id}", "ENABLE_SITE_SWITCHER": "false" }\n    },`;
+    fs.writeFileSync(wranglerFile, w.replace(/("env":\s*\{)/, `$1${entry}`));
+  }
+}
+
 console.log(`✓ Created sites/${id} (copied from ${from}) and registered it in sites/index.ts.
 Next steps:
   1. Edit sites/${id}/company.ts, theme.ts, home.ts, pages.ts, … (see docs/CUSTOMIZATION.md)
   2. Replace brand assets in public/sites/${id}/
   3. npm run validate:sites
-  4. SITE_ID=${id} npm run dev`);
+  4. SITE_ID=${id} npm run dev
+  5. Cloudflare: a Worker named "${id}" was added to wrangler.jsonc – see docs/CLOUDFLARE.md`);

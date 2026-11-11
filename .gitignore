@@ -11,3 +11,7 @@ firebase-debug.log
 firestore-debug.log
 .firebase/
 *-service-account*.json
+# Cloudflare / OpenNext build output
+.open-next/
+.wrangler/
+.dev.vars*

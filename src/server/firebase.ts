@@ -14,13 +14,10 @@ import "server-only";
  * ISOLATE_SITE_STORAGE=true: a site never falls back to the shared credentials (2–3).
  * Data lives under the collection  uws_sites/{siteId}/…  (see store.ts / media.ts).
  */
-import { cert, getApp, getApps, initializeApp, type ServiceAccount } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { FirestoreRest, type Creds } from "./firestore-rest";
 
 const envSuffix = (siteId: string) => siteId.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 const isolated = () => process.env.ISOLATE_SITE_STORAGE === "true";
-
-type Creds = { projectId: string; clientEmail?: string; privateKey?: string; emulator?: boolean };
 
 function parseServiceAccount(raw: string): Creds | undefined {
   try {
@@ -57,28 +54,19 @@ export function firebaseLabel(siteId: string) {
   return c ? `${c.emulator ? "emulator " : ""}project ${c.projectId}` : undefined;
 }
 
-// Process-wide cache: Next.js may load this module more than once (one copy per route bundle),
-// but firebase-admin's app registry is global, so the Firestore client must be shared too.
-const g = globalThis as unknown as { __uwsFirestore?: Map<string, Firestore> };
-const dbs = (g.__uwsFirestore ??= new Map<string, Firestore>());
+// One client per Firebase project, shared process-wide (Next.js may load this module once per
+// route bundle). Uses Firestore's REST API, so it also runs on Cloudflare Workers.
+const g = globalThis as unknown as { __uwsFirestore?: Map<string, FirestoreRest> };
+const dbs = (g.__uwsFirestore ??= new Map<string, FirestoreRest>());
 
-/** Firestore client for a site's Firebase project (one app per project, reused across requests). */
-export function firestoreFor(siteId: string): Firestore {
+/** Firestore client for a site's Firebase project. */
+export function firestoreFor(siteId: string): FirestoreRest {
   const c = firebaseCredsFor(siteId);
   if (!c) throw new Error(`Firebase is not configured for site "${siteId}". Set ${firebaseEnvHint(siteId)}.`);
   const key = `${c.projectId}|${c.clientEmail ?? "emulator"}`;
   let db = dbs.get(key);
   if (!db) {
-    const name = `uws-${key.replace(/[^a-zA-Z0-9-]/g, "-")}`;
-    const app = getApps().some((a) => a.name === name)
-      ? getApp(name)
-      : initializeApp(c.emulator ? { projectId: c.projectId } : { projectId: c.projectId, credential: cert({ projectId: c.projectId, clientEmail: c.clientEmail, privateKey: c.privateKey } as ServiceAccount) }, name);
-    db = getFirestore(app);
-    try {
-      db.settings({ ignoreUndefinedProperties: true });
-    } catch {
-      /* already configured by another copy of this module */
-    }
+    db = new FirestoreRest(c);
     dbs.set(key, db);
   }
   return db;
@@ -87,8 +75,8 @@ export function firestoreFor(siteId: string): Firestore {
 /* ---------------- large values are split across documents (1 MiB doc limit) ---------------- */
 export const CHUNK_BYTES = 900_000;
 
-export function chunk(buf: Buffer): Buffer[] {
-  const out: Buffer[] = [];
+export function chunk(buf: Uint8Array): Uint8Array[] {
+  const out: Uint8Array[] = [];
   for (let i = 0; i < buf.length; i += CHUNK_BYTES) out.push(buf.subarray(i, i + CHUNK_BYTES));
-  return out.length ? out : [Buffer.alloc(0)];
+  return out.length ? out : [new Uint8Array(0)];
 }
