@@ -2,21 +2,20 @@ import "server-only";
 /**
  * MEDIA STORAGE (admin image uploads) – one store per site, chosen automatically:
  *
- *   1. Vercel Blob   BLOB_READ_WRITE_TOKEN_<SITE_ID> or BLOB_READ_WRITE_TOKEN   → global CDN (recommended)
- *   2. Postgres      the site's own database (see db.ts)                          → no extra setup
- *   3. Local files   .data/media/<site>/ during local development
- *   4. none          hosted without Blob or database → uploads disabled (paste URLs instead)
+ *   1. Firestore     the site's Firebase project (see firebase.ts); images are split into
+ *                    ~900 KB pieces to fit Firestore's 1 MiB document limit – works on the free plan
+ *   2. Local files   .data/media/<site>/ during local development
+ *   3. none          hosted without Firebase → uploads disabled (paste image URLs instead)
  *
- * Postgres/local images are served by /api/media/<site>/<file> with long-lived cache headers.
- * With ISOLATE_SITE_DATABASES=true the shared BLOB_READ_WRITE_TOKEN is not used either.
+ * Images are served by /api/media/<site>/<file> with year-long cache headers, so after the
+ * first request they come from Vercel's CDN rather than Firestore.
  */
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { put, list, del } from "@vercel/blob";
-import { databaseUrlFor, ensureSchema, sqlFor } from "./db";
+import { chunk, firestoreFor, hasFirebase } from "./firebase";
 
-export type MediaKind = "blob" | "postgres" | "file" | "none";
+export type MediaKind = "firestore" | "file" | "none";
 export type MediaItem = { id: string; url: string; filename: string; contentType: string; size: number; createdAt: string };
 
 export interface MediaStore {
@@ -24,7 +23,7 @@ export interface MediaStore {
   upload(file: { name: string; bytes: Buffer; contentType: string }): Promise<MediaItem>;
   list(): Promise<MediaItem[]>;
   remove(id: string): Promise<void>;
-  /** Only for postgres/file stores (blob files are served by the Blob CDN). */
+  /** Bytes of a stored image (served through /api/media). */
   read(id: string): Promise<{ contentType: string; bytes: Buffer } | undefined>;
 }
 
@@ -65,70 +64,43 @@ const SAFE_ID = /^[a-z0-9-]+\.(jpg|png|webp|gif|avif|svg|ico)$/;
 export const isSafeMediaId = (id: string) => SAFE_ID.test(id);
 const localUrl = (siteId: string, id: string) => `/api/media/${siteId}/${id}`;
 
-/* ------------------------------ Vercel Blob ------------------------------ */
-const envSuffix = (siteId: string) => siteId.toUpperCase().replace(/[^A-Z0-9]/g, "_");
-export function blobTokenFor(siteId: string) {
-  const specific = process.env[`BLOB_READ_WRITE_TOKEN_${envSuffix(siteId)}`];
-  if (specific) return specific;
-  if (process.env.ISOLATE_SITE_DATABASES === "true") return undefined;
-  return process.env.BLOB_READ_WRITE_TOKEN || undefined;
-}
-
-function blobStore(siteId: string, token: string): MediaStore {
-  const prefix = `sites/${siteId}/`;
+/* ------------------------------ Firestore ------------------------------ */
+/** uws_sites/{site}/media/{id} { filename, contentType, size, parts, createdAt } + parts/{n} { n, data: bytes } */
+function firestoreMedia(siteId: string): MediaStore {
+  const col = () => firestoreFor(siteId).collection("uws_sites").doc(siteId).collection("media");
   return {
-    kind: "blob",
+    kind: "firestore",
     async upload({ name, bytes, contentType }) {
       const id = makeId(name, contentType);
-      const r = await put(prefix + id, bytes, { access: "public", token, contentType, addRandomSuffix: false, cacheControlMaxAge: 31536000 });
-      return { id, url: r.url, filename: name, contentType, size: bytes.length, createdAt: new Date().toISOString() };
+      const ref = col().doc(id);
+      const pieces = chunk(bytes);
+      const createdAt = new Date().toISOString();
+      const batch = firestoreFor(siteId).batch();
+      pieces.forEach((b, n) => batch.set(ref.collection("parts").doc(String(n).padStart(4, "0")), { n, data: b }));
+      batch.set(ref, { filename: name.slice(0, 200), contentType, size: bytes.length, parts: pieces.length, createdAt });
+      await batch.commit();
+      return { id, url: localUrl(siteId, id), filename: name, contentType, size: bytes.length, createdAt };
     },
     async list() {
-      const out: MediaItem[] = [];
-      let cursor: string | undefined;
-      do {
-        const r = await list({ prefix, token, cursor, limit: 1000 });
-        for (const b of r.blobs) {
-          const id = b.pathname.slice(prefix.length);
-          const ext = id.split(".").pop() ?? "";
-          out.push({ id, url: b.url, filename: id, contentType: Object.keys(EXT).find((k) => EXT[k] === ext) ?? "image", size: b.size, createdAt: new Date(b.uploadedAt).toISOString() });
-        }
-        cursor = r.hasMore ? r.cursor : undefined;
-      } while (cursor);
-      return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      const q = await col().orderBy("createdAt", "desc").limit(1000).get();
+      return q.docs.map((d) => ({ id: d.id, url: localUrl(siteId, d.id), filename: d.get("filename"), contentType: d.get("contentType"), size: d.get("size"), createdAt: d.get("createdAt") }));
     },
     async remove(id) {
       if (!isSafeMediaId(id)) throw new Error("Invalid id");
-      await del(prefix + id, { token });
-    },
-    read: async () => undefined,
-  };
-}
-
-/* ------------------------------ Postgres ------------------------------ */
-function pgMedia(siteId: string): MediaStore {
-  const sql = () => sqlFor(siteId);
-  return {
-    kind: "postgres",
-    async upload({ name, bytes, contentType }) {
-      await ensureSchema(siteId);
-      const id = makeId(name, contentType);
-      await sql()`INSERT INTO uws_media (id, site_id, filename, content_type, size, data) VALUES (${id}, ${siteId}, ${name.slice(0, 200)}, ${contentType}, ${bytes.length}, ${bytes})`;
-      return { id, url: localUrl(siteId, id), filename: name, contentType, size: bytes.length, createdAt: new Date().toISOString() };
-    },
-    async list() {
-      await ensureSchema(siteId);
-      const rows = await sql()`SELECT id, filename, content_type, size, created_at FROM uws_media WHERE site_id = ${siteId} ORDER BY created_at DESC LIMIT 1000`;
-      return rows.map((r) => ({ id: r.id, url: localUrl(siteId, r.id), filename: r.filename, contentType: r.content_type, size: r.size, createdAt: new Date(r.created_at).toISOString() }));
-    },
-    async remove(id) {
-      await ensureSchema(siteId);
-      await sql()`DELETE FROM uws_media WHERE site_id = ${siteId} AND id = ${id}`;
+      const ref = col().doc(id);
+      const parts = await ref.collection("parts").get();
+      const batch = firestoreFor(siteId).batch();
+      parts.docs.forEach((p) => batch.delete(p.ref));
+      batch.delete(ref);
+      await batch.commit();
     },
     async read(id) {
-      await ensureSchema(siteId);
-      const rows = await sql()`SELECT content_type, data FROM uws_media WHERE site_id = ${siteId} AND id = ${id}`;
-      return rows.length ? { contentType: rows[0].content_type, bytes: Buffer.from(rows[0].data) } : undefined;
+      if (!isSafeMediaId(id)) return undefined;
+      const ref = col().doc(id);
+      const meta = await ref.get();
+      if (!meta.exists) return undefined;
+      const parts = await ref.collection("parts").orderBy("n").get();
+      return { contentType: meta.get("contentType"), bytes: Buffer.concat(parts.docs.map((p) => Buffer.from(p.get("data")))) };
     },
   };
 }
@@ -172,7 +144,7 @@ function fileMedia(siteId: string): MediaStore {
 const none: MediaStore = {
   kind: "none",
   upload: async () => {
-    throw new Error("Image uploads need storage: connect Vercel Blob (recommended) or a database to this project.");
+    throw new Error("Image uploads need storage: connect Firebase to this website (see docs/ADMIN.md).");
   },
   list: async () => [],
   remove: async () => {},
@@ -180,9 +152,7 @@ const none: MediaStore = {
 };
 
 export function getMediaStore(siteId: string): MediaStore {
-  const token = blobTokenFor(siteId);
-  if (token) return blobStore(siteId, token);
-  if (databaseUrlFor(siteId)) return pgMedia(siteId);
+  if (hasFirebase(siteId)) return firestoreMedia(siteId);
   if (process.env.VERCEL || process.env.UWS_READONLY === "true") return none;
   return fileMedia(siteId);
 }

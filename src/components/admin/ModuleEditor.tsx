@@ -73,7 +73,7 @@ export function ModuleEditor({ module, label, help, schema, initial, overridden,
           <p className="mt-1 max-w-2xl text-sm text-neutral-600">{help}</p>
           {fieldHelp(module) && <p className="mt-1 max-w-2xl text-sm text-neutral-600">{fieldHelp(module)}</p>}
           {["company", "pages", "story", "content", "seo", "footer", "navigation", "services", "catalog"].includes(module) && <p className="mt-2 max-w-2xl rounded-md bg-indigo-50 px-3 py-2 text-xs text-indigo-900">{TOKEN_HELP}</p>}
-          <p className="mt-2 text-xs text-neutral-500">{overridden ? "Edited in admin (stored in the database)." : "Showing values from the configuration files – saving stores your edited copy."}</p>
+          <p className="mt-2 text-xs text-neutral-500">{overridden ? "Edited in admin (saved in Firestore)." : "Showing values from the configuration files – saving stores your edited copy."}</p>
         </div>
         <div className="flex gap-2">
           <a href="/" target="_blank" className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium hover:bg-neutral-50"><ExternalLink className="size-4" /> View site</a>
@@ -86,7 +86,7 @@ export function ModuleEditor({ module, label, help, schema, initial, overridden,
       {!writable && (
         <div className="mb-6 flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="size-5 shrink-0" />
-          <div><strong>Read-only:</strong> no database is connected ({storeKind}), so changes can’t be saved. Add a Postgres database and set <code>DATABASE_URL</code> in your hosting environment, then redeploy. See docs/ADMIN.md.</div>
+          <div><strong>Read-only:</strong> no storage is connected ({storeKind}), so changes can’t be saved. Connect Firebase: add the <code>FIREBASE_SERVICE_ACCOUNT</code> environment variable in Vercel (see docs/ADMIN.md), then redeploy.</div>
         </div>
       )}
 

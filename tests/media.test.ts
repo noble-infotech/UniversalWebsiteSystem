@@ -33,28 +33,4 @@ describe("media uploads", () => {
     expect(isSafeMediaId("photo.html")).toBe(false);
   });
 
-  it("uses the site's own Blob store, and never a shared one when isolated", async () => {
-    process.env.BLOB_READ_WRITE_TOKEN = "shared";
-    process.env.BLOB_READ_WRITE_TOKEN_MAISON_LUMIERE = "maison";
-    let { blobTokenFor } = await media();
-    expect(blobTokenFor("maison-lumiere")).toBe("maison");
-    expect(blobTokenFor("apex-forge")).toBe("shared");
-    vi.resetModules();
-    process.env.ISOLATE_SITE_DATABASES = "true";
-    ({ blobTokenFor } = await media());
-    expect(blobTokenFor("apex-forge")).toBeUndefined();
-  });
-
-  it("falls back to database, then local files, then disabled", async () => {
-    delete process.env.BLOB_READ_WRITE_TOKEN;
-    delete process.env.DATABASE_URL;
-    delete process.env.POSTGRES_URL;
-    delete process.env.VERCEL;
-    process.env.DATABASE_URL_APEX_FORGE = "postgres://x/apex";
-    const { getMediaStore } = await media();
-    expect(getMediaStore("apex-forge").kind).toBe("postgres");
-    expect(getMediaStore("maison-lumiere").kind).toBe("file");
-    process.env.VERCEL = "1";
-    expect(getMediaStore("maison-lumiere").kind).toBe("none");
-  });
 });

@@ -21,7 +21,7 @@ export function AdminNav({ brand, siteId, storeKind, storeLocation, modules, sho
       <div className="border-b border-neutral-200 px-5 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Admin</p>
         <p className="truncate font-bold">{brand}</p>
-        <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-500" title={storeLocation}><Database className="size-3 shrink-0" /> <span className="truncate">{siteId} · {storeKind === "postgres" ? `own database${storeLocation ? ` (${storeLocation})` : ""}` : storeKind === "file" ? "local files" : "no database"}</span></p>
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-500" title={storeLocation}><Database className="size-3 shrink-0" /> <span className="truncate">{siteId} · {storeKind === "firestore" ? `Firestore${storeLocation ? ` (${storeLocation})` : ""}` : storeKind === "file" ? "local files" : "no storage connected"}</span></p>
       </div>
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Admin">
         <div className="space-y-0.5">

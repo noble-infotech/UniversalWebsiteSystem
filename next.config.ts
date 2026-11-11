@@ -4,8 +4,6 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
-      // Admin uploads stored in Vercel Blob
-      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
     // Set NEXT_IMAGE_UNOPTIMIZED=true where the server cannot reach remote image hosts.
     unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === "true",

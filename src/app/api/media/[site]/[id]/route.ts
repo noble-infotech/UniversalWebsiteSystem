@@ -2,7 +2,7 @@ import { siteRegistry } from "@sites/index";
 import { getMediaStore, isSafeMediaId } from "@/server/media";
 
 /**
- * Public image delivery for uploads stored in the site's database or local files.
+ * Public image delivery for uploads stored in Firestore or local files.
  * File ids are random and never change, so responses are cached for a year.
  */
 export async function GET(_req: Request, ctx: { params: Promise<{ site: string; id: string }> }) {
@@ -14,7 +14,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ site: string; 
     headers: {
       "content-type": file.contentType,
       "content-length": String(file.bytes.length),
-      "cache-control": "public, max-age=31536000, immutable",
+      // s-maxage lets Vercel's CDN cache each image after the first request (fewer Firestore reads).
+      "cache-control": "public, max-age=31536000, s-maxage=31536000, immutable",
       "x-content-type-options": "nosniff",
       // Uploaded SVGs can't run scripts even if opened directly.
       "content-security-policy": "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox",

@@ -8,12 +8,18 @@ import { applyTokens } from "./tokens";
 export const SITE_COOKIE = "uws-site";
 
 /**
- * Config resolution = file config (sites/<id>) + admin overrides (database).
+ * Config resolution = file config (sites/<id>) + admin overrides (Firestore / local files).
  * Overrides replace whole top-level modules (company, theme, pages, catalog…),
  * so a module edited in the admin is fully owned by the admin until reset.
  */
-const parsed = new Map<string, { key: string; config: SiteConfig }>();
-const overridesCache = new Map<string, { at: number; data: Overrides; updatedAt?: string }>();
+// Process-wide caches: Next.js can load this module once per route bundle, and an admin save
+// (API route) must invalidate the copy the pages read from, so edits show immediately.
+const g = globalThis as unknown as {
+  __uwsParsed?: Map<string, { key: string; config: SiteConfig }>;
+  __uwsOverrides?: Map<string, { at: number; data: Overrides; updatedAt?: string }>;
+};
+const parsed = (g.__uwsParsed ??= new Map());
+const overridesCache = (g.__uwsOverrides ??= new Map());
 const TTL_MS = 10_000; // other server instances pick up admin edits within 10 s
 
 function format(issues: { path: PropertyKey[]; message: string }[]) {

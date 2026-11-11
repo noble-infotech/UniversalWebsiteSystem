@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
   if (!rateLimit(`media:${auth.siteId}`, 60, 60_000)) return NextResponse.json({ ok: false, error: "Too many uploads – wait a minute." }, { status: 429 });
   const store = getMediaStore(auth.siteId);
-  if (store.kind === "none") return NextResponse.json({ ok: false, error: "Uploads are not set up: connect Vercel Blob (Storage → Blob) or a database to this project, then redeploy." }, { status: 503 });
+  if (store.kind === "none") return NextResponse.json({ ok: false, error: "Uploads are not set up: connect Firebase to this website (see docs/ADMIN.md), then redeploy." }, { status: 503 });
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");

@@ -2,7 +2,7 @@ import "server-only";
 import type { FormHandler, OrderRepository } from "../types";
 import { getStore } from "@/server/store";
 
-/** Durable orders in Postgres (or local JSON files in development). */
+/** Durable orders in Firebase Firestore (or local JSON files in development). */
 export function storeOrderRepository(siteId: string): OrderRepository {
   const store = getStore(siteId);
   return {
