@@ -1,4 +1,5 @@
 import "server-only";
+import { isEphemeralHost } from "./host";
 /**
  * MEDIA STORAGE (admin image uploads) – one store per site, chosen automatically:
  *
@@ -67,40 +68,34 @@ const localUrl = (siteId: string, id: string) => `/api/media/${siteId}/${id}`;
 /* ------------------------------ Firestore ------------------------------ */
 /** uws_sites/{site}/media/{id} { filename, contentType, size, parts, createdAt } + parts/{n} { n, data: bytes } */
 function firestoreMedia(siteId: string): MediaStore {
-  const col = () => firestoreFor(siteId).collection("uws_sites").doc(siteId).collection("media");
+  const db = () => firestoreFor(siteId);
+  const col = `uws_sites/${siteId}/media`;
   return {
     kind: "firestore",
     async upload({ name, bytes, contentType }) {
       const id = makeId(name, contentType);
-      const ref = col().doc(id);
       const pieces = chunk(bytes);
       const createdAt = new Date().toISOString();
-      const batch = firestoreFor(siteId).batch();
-      pieces.forEach((b, n) => batch.set(ref.collection("parts").doc(String(n).padStart(4, "0")), { n, data: b }));
-      batch.set(ref, { filename: name.slice(0, 200), contentType, size: bytes.length, parts: pieces.length, createdAt });
-      await batch.commit();
+      // One write per piece: each request stays well under Firestore's 10 MiB request limit.
+      for (const [n, b] of pieces.entries()) await db().set(`${col}/${id}/parts/${String(n).padStart(4, "0")}`, { n, data: b });
+      await db().set(`${col}/${id}`, { filename: name.slice(0, 200), contentType, size: bytes.length, parts: pieces.length, createdAt });
       return { id, url: localUrl(siteId, id), filename: name, contentType, size: bytes.length, createdAt };
     },
     async list() {
-      const q = await col().orderBy("createdAt", "desc").limit(1000).get();
-      return q.docs.map((d) => ({ id: d.id, url: localUrl(siteId, d.id), filename: d.get("filename"), contentType: d.get("contentType"), size: d.get("size"), createdAt: d.get("createdAt") }));
+      const rows = await db().query(col, "createdAt", { limit: 1000 });
+      return rows.map((d) => ({ id: d.id, url: localUrl(siteId, d.id), filename: String(d.data.filename), contentType: String(d.data.contentType), size: Number(d.data.size), createdAt: String(d.data.createdAt) }));
     },
     async remove(id) {
       if (!isSafeMediaId(id)) throw new Error("Invalid id");
-      const ref = col().doc(id);
-      const parts = await ref.collection("parts").get();
-      const batch = firestoreFor(siteId).batch();
-      parts.docs.forEach((p) => batch.delete(p.ref));
-      batch.delete(ref);
-      await batch.commit();
+      const parts = await db().list(`${col}/${id}/parts`);
+      await db().commit([...parts.map((p) => ({ op: "delete" as const, path: `${col}/${id}/parts/${p.id}` })), { op: "delete", path: `${col}/${id}` }]);
     },
     async read(id) {
       if (!isSafeMediaId(id)) return undefined;
-      const ref = col().doc(id);
-      const meta = await ref.get();
-      if (!meta.exists) return undefined;
-      const parts = await ref.collection("parts").orderBy("n").get();
-      return { contentType: meta.get("contentType"), bytes: Buffer.concat(parts.docs.map((p) => Buffer.from(p.get("data")))) };
+      const meta = await db().get(`${col}/${id}`);
+      if (!meta) return undefined;
+      const parts = (await db().list(`${col}/${id}/parts`)).sort((x, y) => Number(x.data.n) - Number(y.data.n));
+      return { contentType: String(meta.contentType), bytes: Buffer.concat(parts.map((p) => p.data.data as Uint8Array)) };
     },
   };
 }
@@ -153,6 +148,6 @@ const none: MediaStore = {
 
 export function getMediaStore(siteId: string): MediaStore {
   if (hasFirebase(siteId)) return firestoreMedia(siteId);
-  if (process.env.VERCEL || process.env.UWS_READONLY === "true") return none;
+  if (isEphemeralHost()) return none;
   return fileMedia(siteId);
 }

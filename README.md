@@ -56,8 +56,20 @@ See `.env.example`.
 
 Each website has an admin at **`/admin`** with **image upload and a media library**, for editing company details, brand colours and fonts, pages and homepage sections, menus, products, services, content, shop settings and SEO. It also lists **enquiries** and **orders**. Changes are validated and go live immediately. Setup is the site's own free Firebase project (Firestore, one per site) plus an `ADMIN_PASSWORD`; see [docs/ADMIN.md](docs/ADMIN.md). Locally it works with zero setup: open http://localhost:3000/admin and use the password `admin`.
 
+## Hosting
+
+Runs on **Cloudflare Workers** (via OpenNext; one Worker per customer site, see [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)) or on **Vercel**, unchanged. Data is stored in each site's own **Firebase Firestore** project.
+
+```bash
+npm run cf:build
+```
+```bash
+npm run cf:deploy -- --env <site-id>
+```
+
 ## Documentation
 
+- [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md): **new customer checklist on Cloudflare**: Worker, Firebase, secrets, custom domain
 - [docs/ADMIN.md](docs/ADMIN.md): **admin dashboard**, its setup on Vercel (Firebase and password), and how editing works
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): technology stack, architecture, folder structure, request flow
 - [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md): **onboard a new company** (branding, theme, homepage, navigation, footer, features)

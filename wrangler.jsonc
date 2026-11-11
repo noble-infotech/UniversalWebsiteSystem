@@ -1,0 +1,38 @@
+/**
+ * Cloudflare Workers configuration (see docs/CLOUDFLARE.md).
+ *
+ * One Worker per customer website, all built from this repository:
+ *   – the top-level Worker is the 3-company DEMO (with the "Switch demo" button)
+ *   – each entry under "env" is one customer website; `npm run new-site` adds them
+ *
+ * Deploy a customer:  npm run cf:deploy -- --env <site-id>
+ * Secrets (never in this file) are added per Worker in the Cloudflare dashboard:
+ *   FIREBASE_SERVICE_ACCOUNT, ADMIN_PASSWORD, ADMIN_SECRET
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uws-demo",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  // Keep variables added in the dashboard when deploying.
+  "keep_vars": true,
+  "vars": { "ENABLE_SITE_SWITCHER": "true" },
+
+  "env": {
+    "apex-forge": {
+      "name": "apex-forge",
+      "vars": { "SITE_ID": "apex-forge", "ENABLE_SITE_SWITCHER": "false" }
+    },
+    "maison-lumiere": {
+      "name": "maison-lumiere",
+      "vars": { "SITE_ID": "maison-lumiere", "ENABLE_SITE_SWITCHER": "false" }
+    },
+    "northstar-advisory": {
+      "name": "northstar-advisory",
+      "vars": { "SITE_ID": "northstar-advisory", "ENABLE_SITE_SWITCHER": "false" }
+    }
+  }
+}

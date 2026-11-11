@@ -32,10 +32,14 @@ All data (admin edits, enquiries, orders and uploaded images) is stored in **Goo
 2. In the project, open **Build → Firestore Database → Create database**. Choose **production mode** and a location close to the customer (it can't be changed later).
    - Production mode blocks all access from browsers, which is what we want. The website talks to Firestore only from the server, using the key from the next step.
 3. Open **Project settings (⚙) → Service accounts → Generate new private key**. A `.json` file downloads. **Keep it secret.**
-4. In the website's **Vercel project → Settings → Environment Variables**, add:
+4. Add the key to your hosting provider:
+   - **Cloudflare:** Worker → **Settings → Variables and Secrets** → type **Secret** (see [CLOUDFLARE.md](CLOUDFLARE.md));
+   - **Vercel:** project → **Settings → Environment Variables**.
+
+   Add:
    - **Name:** `FIREBASE_SERVICE_ACCOUNT`
    - **Value:** the **entire contents** of the downloaded `.json` file (open it in a text editor, copy everything and paste)
-   - **Environments:** Production **and** Preview
+   - **Vercel only:** tick Production **and** Preview
 5. Redeploy. The admin sidebar then shows **"Firestore (project …)"**.
 
 Never commit the key file or paste it into `.env.example`, GitHub or chat. If a key leaks, delete it in Firebase (Service accounts → Manage service account permissions → Keys) and generate a new one.
